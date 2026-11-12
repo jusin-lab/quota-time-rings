@@ -1,0 +1,29 @@
+{
+  "name": "quota-rings",
+  "version": "0.3.4",
+  "description": "Read-only quota time rings with official natural resets and independent community reset estimates.",
+  "author": {
+    "name": "Quota Time Rings contributors"
+  },
+  "license": "MIT",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "Quota Time Rings",
+    "shortDescription": "Quota, natural reset, and separate extra-reset signals",
+    "longDescription": "Open three nested rings for quota remaining, natural-window time, and a clearly labeled community reset estimate. Official account data stays separate from anonymous public GitHub signals. Includes source links, disclosed timezone assumptions, seven languages and visible-only refresh.",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Show my quota and natural reset panel.",
+      "Show an explicitly simulated quota panel."
+    ],
+    "brandColor": "#0b7868",
+    "composerIcon": "./assets/icon-v0.3.0.png",
+    "logo": "./assets/icon-v0.3.0.png",
+    "logoDark": "./assets/icon-v0.3.0.png"
+  },
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/"
+}

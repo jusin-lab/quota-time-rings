@@ -1,0 +1,29 @@
+{
+  "name": "quota-rings-dev",
+  "private": true,
+  "version": "0.3.4",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "preview": "node scripts/preview.mjs",
+    "preview:live": "node scripts/preview.mjs --live",
+    "check:live": "node scripts/check-live.mjs",
+    "test:ui": "node --test test/ui*.test.mjs",
+    "test:loading": "node scripts/loading-runtime-qa.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.4",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.65.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jusin-lab/quota-time-rings.git"
+  }
+}

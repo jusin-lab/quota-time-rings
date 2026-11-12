@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "quota-rings": {
+      "command": "/bin/sh",
+      "args": [
+        "./launch.sh"
+      ],
+      "cwd": "."
+    }
+  }
+}

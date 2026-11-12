@@ -1,0 +1,18 @@
+node_modules
+.local-backup/
+.local-data/
+.validation/
+artifacts/
+plugins/quota-rings/signals.local.json
+*.log
+
+# Local authentication, previews and integration-specific backups
+.env
+.env.*
+!.env.example
+.DS_Store
+**/.local-install-backup/
+**/auth.json
+**/config.toml
+*.pem
+*.key

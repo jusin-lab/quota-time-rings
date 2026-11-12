@@ -1,0 +1,20 @@
+import{chromium}from'playwright';import{mkdirSync,writeFileSync,readFileSync}from'node:fs';import assert from'node:assert/strict';import{startPreview}from'./preview.mjs';
+const version=JSON.parse(readFileSync('plugins/quota-rings/.codex-plugin/plugin.json')).version;
+const out='.validation/settings-qa-'+version;mkdirSync(out,{recursive:true});
+const {server,url}=await startPreview({port:0,live:true}),browser=await chromium.launch({channel:'chrome',headless:true});
+const report={previewOnly:true,appUiInspected:false,syntheticCasesExplicit:true};
+try{
+ const context=await browser.newContext({locale:'zh-CN',timezoneId:'Asia/Shanghai',viewport:{width:390,height:850}}),page=await context.newPage();
+ await page.goto(url);await page.waitForFunction(()=>document.getElementById('quota-value').textContent!=='—');
+ await page.click('#settings-toggle');assert.equal(await page.locator('#bucket').isVisible(),false);assert.equal(await page.locator('#window').isVisible(),false);assert.equal(await page.evaluate(()=>document.activeElement.id),'auto-refresh');
+ report.real={quotaType:await page.locator('#bucket-summary').textContent(),period:await page.locator('#window-summary').textContent(),visibleVersion:await page.locator('#build-version').textContent()};
+ await page.screenshot({path:out+'/live-single-option-settings.png',fullPage:true});
+ for(const lang of['zh-CN','en','zh-TW','ja','es','fr','de']){await page.selectOption('#language',lang);assert.ok(await page.locator('#window-summary').textContent());await page.setViewportSize({width:320,height:850});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}
+ await page.selectOption('#language','zh-CN');await page.keyboard.press('Escape');
+ let response={schemaVersion:1,source:'codex-app-server',fetchedAt:new Date().toISOString(),buckets:[{id:'synthetic-A',name:'Test A',windows:[{kind:'primary',usedPercent:10,windowDurationMins:300,resetsAt:Date.now()/1000+1800},{kind:'secondary',usedPercent:20,windowDurationMins:10080,resetsAt:Date.now()/1000+86400}]},{id:'synthetic-B',name:'Test B',windows:[{kind:'primary',usedPercent:30,windowDurationMins:60,resetsAt:Date.now()/1000+600}]}]};
+ await page.route('**/read',async route=>route.request().postDataJSON()?.name==='read_quota'?route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(response)}):route.continue());
+ await page.click('#refresh');await page.waitForFunction(()=>!document.getElementById('refresh').disabled);await page.click('#settings-toggle');assert.equal(await page.locator('#bucket').isVisible(),true);assert.equal(await page.locator('#window').isVisible(),true);assert.equal(await page.evaluate(()=>document.activeElement.id),'bucket');await page.selectOption('#bucket','1');assert.equal(await page.locator('#window').isVisible(),false);assert.ok((await page.locator('#window-summary').textContent()).includes('1'));
+ await page.selectOption('#bucket','0');assert.equal(await page.locator('#window').isVisible(),true);await page.selectOption('#window','1');report.multiple={bucketOptions:await page.locator('#bucket option').count(),windowOptions:await page.locator('#window option').count(),selectedWindow:await page.locator('#window').inputValue()};
+ await page.keyboard.press('Escape');response={schemaVersion:1,source:'codex-app-server',fetchedAt:new Date().toISOString(),buckets:[]};await page.click('#refresh');await page.waitForFunction(()=>!document.getElementById('refresh').disabled);await page.click('#settings-toggle');assert.equal(await page.locator('#bucket').isVisible(),false);assert.equal(await page.locator('#window').isVisible(),false);assert.equal(await page.evaluate(()=>document.activeElement.id),'auto-refresh');report.empty={type:await page.locator('#bucket-summary').textContent(),period:await page.locator('#window-summary').textContent()};
+ writeFileSync(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+}finally{await browser.close();await new Promise(r=>server.close(r))}

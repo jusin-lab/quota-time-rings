@@ -1,0 +1,72 @@
+import {createServer} from 'node:http';
+import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+
+// Isolated, synthetic host: no account lookup or external source request.
+const html=readFileSync('plugins/quota-rings/ui.html','utf8');
+const version=JSON.parse(readFileSync('package.json')).version;
+const out=`.validation/loading-qa-${version}`;
+mkdirSync(out,{recursive:true});
+const failure={schemaVersion:1,source:'codex-app-server',fetchedAt:new Date().toISOString(),buckets:[],error:{code:'READ_FAILED'}};
+const parent=`<!doctype html><style>body{margin:0}iframe{width:100%;height:100vh;border:0}</style><iframe src="/panel"></iframe><script>
+window.pending=[];window.frames[0];
+window.addEventListener('message',e=>{if(e.source!==frames[0]||!e.data.id)return;pending.push(e.data)});
+window.reply=(method,result)=>{const i=pending.findIndex(x=>x.method===method||x.params?.name===method);if(i<0)throw Error('No pending '+method);const request=pending.splice(i,1)[0];frames[0].postMessage({jsonrpc:'2.0',id:request.id,result},location.origin)};
+</script>`;
+const server=createServer((req,res)=>{res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(req.url==='/panel'?html.replace('<script>',`<script>window.__QUOTA_INITIAL__=${JSON.stringify(failure)};</script><script>`):parent);});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const context=await browser.newContext({viewport:{width:390,height:850},locale:'zh-CN'});
+const page=await context.newPage(),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+const origin=`http://127.0.0.1:${server.address().port}`;
+const waitRequest=name=>page.waitForFunction(name=>pending.some(x=>x.method===name||x.params?.name===name),name);
+const reply=(name,value)=>page.evaluate(([name,value])=>window.reply(name,value),[name,value]);
+const connect=async()=>{await waitRequest('ui/initialize');await reply('ui/initialize',{hostContext:{locale:'zh-CN'}});await waitRequest('read_quota');};
+const quota=(used=20)=>({schemaVersion:1,source:'codex-app-server',fetchedAt:new Date().toISOString(),buckets:[{id:'main',name:'Codex',windows:[{kind:'primary',usedPercent:used,windowDurationMins:300,resetsAt:Date.now()/1000+9000}]}]});
+try{
+ await page.goto(origin);
+ let frame=page.frameLocator('iframe');
+ await waitRequest('ui/initialize');
+ assert.equal(await frame.locator('#quota-loading').isVisible(),true);
+ assert.equal(await frame.locator('#error').textContent(),'');
+ await page.screenshot({path:`${out}/01-loading.png`,fullPage:true});
+ await connect();
+ assert.equal(await frame.locator('#status-hint').textContent(),'加载中…');
+ assert.equal(await frame.locator('#quota-loading').isVisible(),true);
+ await reply('read_quota',{structuredContent:quota()});
+ await frame.locator('#quota-loading').waitFor({state:'hidden'});
+ assert.equal(await frame.locator('#quota-value').textContent(),'80');
+ const stored=await page.frames()[1].evaluate(()=>localStorage.getItem('quota-rings-quota-v1'));
+ assert.ok(stored);
+ await page.reload();
+ frame=page.frameLocator('iframe');
+ await waitRequest('ui/initialize');
+ assert.equal(await frame.locator('#quota-value').textContent(),'80');
+ assert.equal(await frame.locator('#quota-loading').isVisible(),false);
+ assert.equal(await frame.locator('#status-hint').textContent(),'缓存 · 更新中…');
+ await page.screenshot({path:`${out}/02-cached.png`,fullPage:true});
+ await connect();
+ await reply('read_quota',{structuredContent:failure});
+ await frame.locator('#refresh:not([disabled])').waitFor();
+ assert.equal(await frame.locator('#quota-value').textContent(),'80');
+ assert.match(await frame.locator('#status-hint').textContent(),/读取失败.*缓存/);
+ assert.equal(await page.frames()[1].evaluate(()=>localStorage.getItem('quota-rings-quota-v1')),stored);
+ await frame.locator('#refresh').click();
+ await waitRequest('read_quota');
+ assert.equal(await frame.locator('#error').textContent(),'');
+ await reply('read_quota',{structuredContent:quota(35)});
+ await frame.locator('#refresh:not([disabled])').waitFor();
+ assert.equal(await frame.locator('#quota-value').textContent(),'65');
+ assert.equal(await frame.locator('#status-hint').textContent(),'已更新');
+ await waitRequest('read_reset_signal');
+ await reply('read_reset_signal',{structuredContent:{schemaVersion:1,source:'reset-signal',checkedAt:null,status:'unknown',verification:'unavailable',retrieval:'error',signal:null,selectedSourceId:'test',sources:[{id:'test',status:'error',errorCode:'SOURCE_FUTURE_TIMESTAMP'}]}});
+ await page.frames()[1].waitForFunction(()=>document.getElementById('prediction-update').textContent.includes('来源扫描时间晚于本机时间'));
+ await page.screenshot({path:`${out}/03-source-time-error.png`,fullPage:true});
+ for(const width of [320,390,720]){await page.setViewportSize({width,height:850});assert.equal(await page.frames()[1].evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
+ assert.deepEqual(errors,[]);
+ const report={version,syntheticData:true,checks:['cold loading during connection and first read','cached data before connection','failed refresh retains cache and timestamps','retry clears previous error','fresh result replaces cache','specific future-source-time explanation','320/390/720px no horizontal overflow'],pageErrors:errors};
+ writeFileSync(`${out}/report.json`,JSON.stringify(report,null,2));
+ console.log(JSON.stringify(report,null,2));
+}finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

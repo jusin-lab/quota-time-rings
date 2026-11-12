@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizeRateLimits,deriveWindow,demoSnapshot,safeError} from '../src/quota.mjs';
+const NOW=Date.UTC(2026,10,11,9),stamp=new Date(NOW).toISOString();
+const win={kind:'primary',usedPercent:20,windowDurationMins:10080,resetsAt:NOW/1000+10080*60*.3};
+test('quota and time use remaining, not consumed, percentages',()=>{assert.deepEqual(deriveWindow(win,stamp,NOW),{quotaRemaining:80,timeRemaining:30,expired:false,stale:false,inconsistent:false});});
+test('period is not hard coded to a week',()=>{assert.equal(deriveWindow({...win,windowDurationMins:90,resetsAt:NOW/1000+45*60},stamp,NOW).timeRemaining,50)});
+test('expired reset is zero time and requires fresh reading',()=>{const d=deriveWindow({...win,resetsAt:NOW/1000-1},stamp,NOW);assert.equal(d.timeRemaining,0);assert.equal(d.expired,true);assert.equal(d.quotaRemaining,80)});
+test('missing and invalid fields remain unknown',()=>{for(const v of [null,undefined,NaN,-1,0])assert.equal(deriveWindow({...win,windowDurationMins:v},stamp,NOW).timeRemaining,null);assert.equal(deriveWindow({...win,usedPercent:null},stamp,NOW).quotaRemaining,null);assert.equal(deriveWindow({...win,usedPercent:-1},stamp,NOW).quotaRemaining,null)});
+test('overage clamps to zero, implausible future reset flags inconsistency',()=>{assert.equal(deriveWindow({...win,usedPercent:120},stamp,NOW).quotaRemaining,0);assert.equal(deriveWindow({...win,resetsAt:NOW/1000+10080*120},stamp,NOW).inconsistent,true)});
+test('staleness and future clock skew are explicit',()=>{assert.equal(deriveWindow(win,new Date(NOW-300001).toISOString(),NOW).stale,true);assert.equal(deriveWindow(win,'bad',NOW).stale,true);assert.equal(deriveWindow(win,new Date(NOW+60001).toISOString(),NOW).stale,true)});
+test('multi-bucket response wins over backwards-compatible view and excludes private fields',()=>{const d=normalizeRateLimits({rateLimits:{limitId:'legacy'},rateLimitsByLimitId:{codex:{limitId:'codex',primary:win,credits:{balance:'secret'},email:'private@example.com'},other:{limitName:'Other',secondary:{usedPercent:25,windowDurationMins:90,resetsAt:1794790810}}},tokens:'secret'},NOW);assert.equal(d.buckets.length,2);assert.equal(d.buckets[1].id,'other');assert.equal(d.buckets[1].windows[0].kind,'secondary');assert.ok(!JSON.stringify(d).includes('secret'));assert.ok(!JSON.stringify(d).includes('private@example'))});
+test('legacy format supported; missing buckets are not fabricated',()=>{assert.equal(normalizeRateLimits({rateLimits:{limitId:'codex',primary:win}},NOW).buckets.length,1);assert.equal(normalizeRateLimits({},NOW).error.code,'NO_LIMITS')});
+test('demo labeled and formula correct',()=>{const d=demoSnapshot(NOW);assert.equal(d.source,'demo');const g=deriveWindow(d.buckets[0].windows[0],d.fetchedAt,NOW);assert.equal(g.quotaRemaining,80);assert.equal(g.timeRemaining,30)});
+test('errors do not expose raw system output',()=>{assert.equal(safeError('my secret error',NOW).error.code,'READ_FAILED')});
