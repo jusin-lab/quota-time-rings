@@ -7,7 +7,8 @@ const client=new Client({name:'quota-rings-validation',version});
 const transport=new StdioClientTransport({command:'/bin/sh',args:['plugins/quota-rings/launch.sh'],stderr:'pipe'});
 await client.connect(transport);
 try {
- const tools=await client.listTools();assert.deepEqual(tools.tools.map(t=>t.name).sort(),['demo_quota','read_quota','read_reset_signal']);
+ const tools=await client.listTools();assert.deepEqual(tools.tools.map(t=>t.name).sort(),['check_setup','demo_quota','read_quota','read_reset_signal']);
+ assert.deepEqual(tools.tools.find(t=>t.name==='check_setup')._meta.ui.visibility,['app']);
  for(const tool of tools.tools){assert.equal(tool.annotations.readOnlyHint,true);assert.ok(tool._meta.ui.resourceUri.startsWith('ui://quota-rings/panel-v'+version+'-'));assert.match(tool._meta.ui.resourceUri,/-[a-f0-9]{12}\.html$/);}
  const resource=await client.readResource({uri:tools.tools[0]._meta.ui.resourceUri});assert.match(resource.contents[0].mimeType,/text\/html/);assert.match(resource.contents[0].text,/quota-value/);
  const legacy=await client.readResource({uri:'ui://quota-rings/panel.html'});assert.equal(legacy.contents[0].text,resource.contents[0].text);

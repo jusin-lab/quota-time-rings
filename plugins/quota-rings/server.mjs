@@ -37045,6 +37045,79 @@ function uiResourceUri(html2, version2) {
   return `ui://quota-rings/panel-v${version2}-${createHash("sha256").update(html2).digest("hex").slice(0, 12)}.html`;
 }
 
+// src/setup-check.mjs
+import { spawn as spawn2 } from "node:child_process";
+import { homedir as homedir2 } from "node:os";
+async function checkSetup({ spawnFn = spawn2, codexPath = resolveCodex(), nodeVersion = process.versions.node, timeoutMs = 12e3, now = () => Date.now() } = {}) {
+  const result = { schemaVersion: 1, source: "setup-check", checkedAt: new Date(now()).toISOString(), node: Number(nodeVersion.split(".")[0]) >= 20 ? "ok" : "unsupported", codex: "unknown", login: "unknown" };
+  if (result.node !== "ok") return { ...result, errorCode: "NODE_UNSUPPORTED" };
+  if (!codexPath) return { ...result, codex: "missing", errorCode: "CODEX_NOT_FOUND" };
+  return new Promise((resolve) => {
+    let child, done = false, buffer = "", phase = "initialize", timer;
+    const finish = (extra) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      buffer = "";
+      try {
+        child?.stdin.end();
+        child?.kill("SIGTERM");
+      } catch {
+      }
+      resolve({ ...result, ...extra });
+    };
+    const fail = (errorCode) => finish({ errorCode });
+    try {
+      child = spawnFn(codexPath, ["app-server", "--listen", "stdio://", "-c", "analytics.enabled=false"], { stdio: ["pipe", "pipe", "pipe"], cwd: homedir2(), env: process.env });
+    } catch {
+      return fail("READ_FAILED");
+    }
+    timer = setTimeout(() => fail("TIMEOUT"), timeoutMs);
+    child.on("error", (e) => finish(e.code === "ENOENT" ? { codex: "missing", errorCode: "CODEX_NOT_FOUND" } : { errorCode: "READ_FAILED" }));
+    child.on("exit", () => fail("SERVER_EXITED"));
+    child.stderr.on("data", () => {
+    });
+    child.stdin.on("error", () => fail("SERVER_EXITED"));
+    const send = (m) => {
+      if (!done) child.stdin.write(JSON.stringify(m) + "\n");
+    };
+    child.stdout.on("data", (chunk) => {
+      if (done) return;
+      buffer += chunk.toString();
+      if (buffer.length > 2 * 1024 * 1024) return fail("INVALID_RESPONSE");
+      let i;
+      while ((i = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, i);
+        buffer = buffer.slice(i + 1);
+        if (!line.trim()) continue;
+        let m;
+        try {
+          m = JSON.parse(line);
+        } catch {
+          return fail("INVALID_RESPONSE");
+        }
+        if (m?.id === 1 && phase === "initialize") {
+          if (m.error || !m.result || typeof m.result !== "object") return fail("READ_FAILED");
+          result.codex = "ok";
+          phase = "account";
+          send({ method: "initialized", params: {} });
+          send({ id: 2, method: "account/read", params: { refreshToken: false } });
+        } else if (m?.id === 2 && phase === "account") {
+          if (m.error) return fail("ACCOUNT_UNAVAILABLE");
+          const r = m.result;
+          if (!r || !Object.hasOwn(r, "account") || typeof r.requiresOpenaiAuth !== "boolean") return fail("INVALID_RESPONSE");
+          if (r.account === null) return finish({ login: r.requiresOpenaiAuth ? "signed_out" : "unsupported" });
+          if (!r.account || typeof r.account.type !== "string") return fail("INVALID_RESPONSE");
+          if (r.account.type === "chatgpt") return finish({ login: "chatgpt" });
+          if (["apiKey", "amazonBedrock"].includes(r.account.type)) return finish({ login: "unsupported" });
+          return fail("INVALID_RESPONSE");
+        }
+      }
+    });
+    send({ id: 1, method: "initialize", params: { clientInfo: { name: "quota_rings_setup", version: "0.3.5" } } });
+  });
+}
+
 // src/server.mjs
 var VERSION = JSON.parse(readFileSync(new URL("./.codex-plugin/plugin.json", import.meta.url), "utf8")).version;
 var html = readFileSync(new URL("./ui.html", import.meta.url), "utf8");
@@ -37065,7 +37138,8 @@ var annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: 
 var reply = (snapshot) => ({ structuredContent: snapshot, content: [{ type: "text", text: snapshot.error ? snapshot.error.message : snapshot.source === "demo" ? "\u6F14\u793A\u6570\u636E\uFF0C\u4E0D\u662F\u8D26\u6237\u7684\u771F\u5B9E\u7528\u91CF\u3002\u4E09\u73AF\u5206\u522B\u663E\u793A\u989D\u5EA6\u3001\u81EA\u7136\u5468\u671F\u5269\u4F59\u65F6\u95F4\u4E0E\u72EC\u7ACB\u9884\u6D4B\u3002" : `\u5DF2\u8BFB\u53D6\u672C\u673A Codex App Server \u8FD4\u56DE\u7684 ${snapshot.buckets.length} \u4E2A\u989D\u5EA6\u6876\u3002\u6B64\u6570\u636E\u4E0D\u4EE3\u8868\u5176\u4ED6 ChatGPT \u6A21\u578B\u7684\u5168\u90E8\u9650\u989D\u3002` }] });
 var readQuota = createQuotaCache(readCodexLimits);
 var readResetSignal = createResetSignalReader();
-j(server, "read_quota", { title: "\u989D\u5EA6\u65F6\u95F4\u73AF", description: "Read quota windows through the official local Codex App Server account/rateLimits/read endpoint and show remaining quota and reset-window time in nested rings. Read-only. No credentials, history, browser cookies, API keys, or raw account identifiers are read by this plugin. Not a general ChatGPT model quota API.", inputSchema: { forceRefresh: external_exports.boolean().optional() }, annotations, _meta: sidebarMeta }, async (args) => reply(await readQuota(args)));
+j(server, "check_setup", { title: "Check setup", description: "Read-only local startup check for Node.js 20+, Codex App Server and ChatGPT sign-in mode via account/read with refreshToken false. Returns only status enums, never account details or credentials. Does not sign in, switch accounts or change settings. A recognized sign-in does not prove quota availability.", inputSchema: {}, annotations, _meta: { ...meta3, ui: { ...meta3.ui, visibility: ["app"] } } }, async () => ({ structuredContent: await checkSetup(), content: [{ type: "text", text: "Local setup check completed. See the localized status and next steps in the panel." }] }));
+j(server, "read_quota", { title: "\u989D\u5EA6\u65F6\u95F4\u73AF", description: "Read quota windows through the official local Codex App Server account/rateLimits/read endpoint and show remaining quota and reset-window time in nested rings. Read-only. No credentials, history, browser cookies, API keys, or raw account identifiers are read by this quota reader. Not a general ChatGPT model quota API.", inputSchema: { forceRefresh: external_exports.boolean().optional() }, annotations, _meta: sidebarMeta }, async (args) => reply(await readQuota(args)));
 j(server, "demo_quota", { title: "\u6F14\u793A\u989D\u5EA6\u65F6\u95F4\u73AF", description: "Show explicitly simulated data for UI evaluation: 80% quota and 30% time remaining in an example window. Does not read any account. Use only when the user requests demo or simulated data.", inputSchema: {}, annotations, _meta: meta3 }, async () => reply(demoSnapshot()));
 j(server, "read_reset_signal", { title: "Extra reset prediction", description: "Read current public Tibo reset signals from the independent GitHub archive and return a clearly labeled, reproducible weekday estimate. Assumed Pacific timezone is disclosed, never asserted as the author\u2019s location. Separate from official account quota resets. Anonymous public GET only; no account data sent, no credentials, no probabilities. Cached 15 minutes; retains old data with error status if refresh fails.", inputSchema: { forceRefresh: external_exports.boolean().optional() }, annotations: { ...annotations, openWorldHint: true }, _meta: meta3 }, async (args) => {
   const snapshot = await readResetSignal(args);

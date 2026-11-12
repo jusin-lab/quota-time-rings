@@ -9,6 +9,7 @@ const NOW=Date.parse('2026-11-11T10:00:00Z'),DAY=86400000,WEEK=7*DAY;
 const iso=x=>new Date(x).toISOString();
 const quota=(now=NOW,override={})=>({schemaVersion:1,source:'codex-app-server',fetchedAt:iso(now),buckets:[{id:'main',name:'Codex',windows:[{kind:'primary',usedPercent:8,windowDurationMins:300,resetsAt:(now+150*60000)/1000}]}],...override});
 const signal=(prediction={},override={})=>({schemaVersion:1,source:'reset-signal',checkedAt:iso(NOW),status:'hint',verification:'primary',retrieval:'ok',staleAfterMs:DAY,signal:{publishedAt:'2026-11-11T06:57:08Z',originalUrl:'https://x.com/example/status/123',evidenceUrl:'https://example.org/archive/123',attribution:'Tibo (Thibault Sottiaux)',evidenceKind:'primary',summary:{en:'Thursday, hour not specified.','zh-CN':'周四，但小时未说明。','zh-TW':'週四，但小時未說明。'},prediction:{earliestAt:null,latestAt:null,timeZone:null,timeBasis:'unspecified',assumption:'No published time zone.',...prediction}},...override});
+const setup=(extra={})=>({schemaVersion:1,source:'setup-check',checkedAt:iso(NOW),node:'ok',codex:'ok',login:'chatgpt',...extra});
 const noSignal=()=>({schemaVersion:1,source:'reset-signal',checkedAt:iso(NOW),status:'unknown',verification:'unavailable',retrieval:'not-configured',staleAfterMs:DAY,signal:null,error:{code:'NOT_CONFIGURED'}});
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 async function harness(config={}){
@@ -16,7 +17,7 @@ async function harness(config={}){
  const listeners={},docListeners={},els=new Map(),requests=[],intervals=[],held=[],storage=new Map(Object.entries(config.storage||{}));
  const get=id=>{if(!els.has(id)){const attrs={},events={},classes=new Set();els.set(id,{id,textContent:'',style:{},dataset:{},hidden:new RegExp('<[^>]+id="'+id+'"[^>]*\\bhidden\\b').test(html),disabled:false,value:'',children:[],attrs,events,classes,classList:{toggle(name,on){on?classes.add(name):classes.delete(name);}},setAttribute(name,value){attrs[name]=String(value)},removeAttribute(name){delete attrs[name]},add(o){this.children.push(o)},replaceChildren(){this.children=[]},addEventListener(event,fn){events[event]=fn},focus(){this.focused=true;document.activeElement=this},contains(target){return target===this}});}return els.get(id);};
  const document={getElementById:get,documentElement:{lang:'en'},title:'',visibilityState:config.hidden?'hidden':'visible',addEventListener:(name,fn)=>docListeners[name]=fn};
- const parent={postMessage(message){requests.push(message);if(message.id===undefined)return;const reply=value=>queueMicrotask(()=>listeners.message({source:parent,origin:'https://chatgpt.com',data:{jsonrpc:'2.0',id:message.id,result:value}}));if(message.method==='ui/initialize'){if(config.holdInitialize)held.push({message,reply});else reply({hostContext:{locale:config.hostLocale}});return;}const tool=message.params.name;if(config.hold?.includes(tool)){held.push({message,reply});return;}let result=config.respond?.(tool,message.params.arguments,now);if(result===undefined)result=tool==='read_reset_signal'?(config.signal||noSignal()):tool==='demo_quota'?{...quota(now),source:'demo'}:quota(now);reply({structuredContent:result});}};
+ const parent={postMessage(message){requests.push(message);if(message.id===undefined)return;const reply=value=>queueMicrotask(()=>listeners.message({source:parent,origin:'https://chatgpt.com',data:{jsonrpc:'2.0',id:message.id,result:value}}));if(message.method==='ui/initialize'){if(config.holdInitialize)held.push({message,reply});else reply({hostContext:{locale:config.hostLocale}});return;}const tool=message.params.name;if(config.hold?.includes(tool)){held.push({message,reply});return;}let result=config.respond?.(tool,message.params.arguments,now);if(result===undefined)result=tool==='check_setup'?setup():tool==='read_reset_signal'?(config.signal||noSignal()):tool==='demo_quota'?{...quota(now),source:'demo'}:quota(now);reply({structuredContent:result});}};
  const window={IntersectionObserver:class{constructor(callback){intersectionCallback=callback;}observe(){}},parent,location:{search:config.search||''},navigator:{languages:config.languages||['en-US'],language:config.language},localStorage:{getItem:key=>{if(config.storageThrows)throw new Error('Storage unavailable');return storage.get(key)??null;},setItem:(key,value)=>{if(config.storageThrows)throw new Error('Storage unavailable');storage.set(key,value);},removeItem:key=>storage.delete(key)},openai:config.openai||{},addEventListener:(name,fn)=>listeners[name]=fn,...(config.initial?{__QUOTA_INITIAL__:config.initial}:{}),...(config.initialSignal?{__RESET_SIGNAL_INITIAL__:config.initialSignal}:{})};
  class ClockDate extends Date{constructor(...args){super(...(args.length?args:[now]));}static now(){return now;}}
  const viewerIntl=Object.create(Intl);viewerIntl.DateTimeFormat=function(locales,options={}){return new Intl.DateTimeFormat(locales,{...(config.timeZone?{timeZone:config.timeZone}:{}),...options});};
@@ -41,7 +42,7 @@ test('auto locale falls through openai, browser preferences, then English; overr
  assert.equal((await harness({hostLocale:'de-DE',storage:{'quota-rings-language':'es'}})).document.documentElement.lang,'es');
 });
 test('panel entry refreshes preloaded quota exactly once, forces read and never sends a prompt',async()=>{
- const h=await harness({initial:quota(NOW-DAY)});assert.deepEqual(h.tools().map(x=>x.params.name),['read_quota','read_reset_signal']);
+ const h=await harness({initial:quota(NOW-DAY)});assert.deepEqual(h.tools().map(x=>x.params.name),['check_setup','read_quota','read_reset_signal']);
  assert.equal(h.tools('read_quota')[0].params.arguments.forceRefresh,true);assert.equal(h.get('quota-value').textContent,'92');
  await h.event('pageshow');await h.visible(true);assert.equal(h.tools('read_quota').length,1);
  assert.ok(!h.requests.some(x=>/prompt|message|turn\/start/.test(x.method)));
@@ -323,7 +324,7 @@ test('demo cancels scheduled quota reads without pretending to update the last l
 
 test('cold first open shows loading through connection and first read, including a preloaded error',async()=>{
  const failure=quota(NOW,{buckets:[],error:{code:'READ_FAILED'}});
- const h=await harness({hostLocale:'zh-CN',initial:failure,hold:['read_quota','read_reset_signal'],holdInitialize:true});
+ const h=await harness({hostLocale:'zh-CN',initial:failure,hold:['check_setup','read_quota','read_reset_signal'],holdInitialize:true});
  assert.equal(h.get('quota-loading').hidden,false);
  assert.equal(h.get('status').dataset.state,'loading');
  assert.equal(h.get('error').textContent,'');
@@ -341,7 +342,7 @@ test('cold first open shows loading through connection and first read, including
 test('reopening restores cached quota and prediction before connecting, then replaces them with fresh data',async()=>{
  const first=await harness({signal:signal({earliestAt:iso(NOW+DAY),latestAt:iso(NOW+2*DAY),timeZone:'UTC',timeBasis:'explicit-source'})});
  const stored=Object.fromEntries(first.storage);
- const h=await harness({storage:stored,holdInitialize:true,hold:['read_quota','read_reset_signal']});
+ const h=await harness({storage:stored,holdInitialize:true,hold:['check_setup','read_quota','read_reset_signal']});
  assert.equal(h.tools().length,0);
  assert.equal(h.get('quota-value').textContent,'92');
  assert.equal(h.get('quota-loading').hidden,true);
@@ -402,7 +403,7 @@ test('demo results never replace cached real quota or real predictions',async()=
  await h.click('demo');
  assert.equal(h.storage.get('quota-rings-quota-v1'),quotaCache);
  assert.equal(h.storage.get('quota-rings-signal-v1'),signalCache);
- const next=await harness({storage:Object.fromEntries(h.storage),hold:['read_quota','read_reset_signal']});
+ const next=await harness({storage:Object.fromEntries(h.storage),hold:['check_setup','read_quota','read_reset_signal']});
  assert.equal(next.get('demo-banner').hidden,true);
  assert.match(next.get('status-hint').textContent,/Cached/);
 });
@@ -426,4 +427,40 @@ test('future source time has a specific localized explanation while retaining ca
   assert.ok(h.get('prediction-update').textContent.includes(h.window.__test.dictionaries[locale].signalFutureTime));
   assert.equal(h.get('signal-error').textContent,h.window.__test.dictionaries[locale].signalFutureTime);
  }
+});
+
+test('setup check runs once per opening without delaying quota or being polled',async()=>{
+ const h=await harness({hold:['check_setup']});assert.equal(h.get('quota-value').textContent,'92');assert.equal(h.get('setup-retry').disabled,true);
+ await h.click('setup-retry');assert.equal(h.tools('check_setup').length,1);
+ await h.release('check_setup',setup());assert.equal(h.get('setup-login').textContent,'Configured');
+ await h.tick(60000);await h.visible(false);await h.visible(true);assert.equal(h.tools('check_setup').length,1);
+ await h.click('setup-retry');assert.equal(h.tools('check_setup').length,2);assert.ok(![...h.storage.keys()].some(x=>/setup|login/.test(x)));
+});
+test('all seven languages cover help, login checks, recovery and live language changes',async()=>{
+ for(const locale of ['en','zh-CN','zh-TW','ja','es','fr','de']){
+  const h=await harness({hostLocale:locale,respond:name=>name==='check_setup'?setup({login:'signed_out'}):undefined});
+  await h.click('help-toggle');assert.equal(h.get('help-panel').hidden,false);assert.equal(h.get('help-toggle').attrs['aria-expanded'],'true');assert.equal(h.document.activeElement.id,'help-title');
+  const dict=h.window.__test.dictionaries[locale];assert.equal(h.get('help-intro').textContent,dict.helpIntro);assert.equal(h.get('setup-login').textContent,dict.checkSignedOut);assert.equal(h.get('setup-guidance').textContent,dict.guideLogin);
+  await h.change('language',locale==='en'?'ja':'en');assert.notEqual(h.get('help-title').textContent,dict.help);
+  await h.docEvent('keydown',{key:'Escape',preventDefault(){}});assert.equal(h.get('help-panel').hidden,true);assert.equal(h.document.activeElement.id,'help-toggle');
+ }
+});
+test('setup retry replaces failed or unsupported state without claiming quota access',async()=>{
+ let reply=setup({login:'unsupported'});const h=await harness({respond:name=>name==='check_setup'?reply:undefined});
+ assert.equal(h.get('setup-login').textContent,'Not supported');assert.match(h.get('setup-guidance').textContent,/Sign in/);
+ reply=setup({login:'unknown',errorCode:'TIMEOUT'});await h.click('setup-retry');assert.equal(h.get('setup-login').textContent,'Unknown');assert.match(h.get('setup-status').textContent,/unavailable/);
+ reply=setup();await h.click('setup-retry');assert.match(h.get('setup-guidance').textContent,/Only a successful quota read/);
+ assert.equal(h.tools('read_quota').length,1,'rechecking setup does not silently trigger a quota refresh');
+});
+test('visible recovery preserves cache, retries the right service and clears on success',async()=>{
+ let fail=true;const h=await harness({initial:quota(),respond:name=>name==='read_quota'&&fail?quota(NOW,{buckets:[],error:{code:'ACCOUNT_UNAVAILABLE'}}):undefined});
+ assert.equal(h.get('quota-value').textContent,'92');assert.equal(h.get('quota-recovery').hidden,false);assert.match(h.get('quota-recovery-text').textContent,/does not by itself/);
+ await h.click('quota-help');assert.equal(h.get('help-panel').hidden,false);
+ fail=false;await h.click('quota-retry');assert.equal(h.get('quota-recovery').hidden,true);assert.equal(h.tools('read_quota').at(-1).params.arguments.forceRefresh,true);
+ await h.notify(signal({}, {retrieval:'error',error:{code:'SOURCE_FUTURE_TIMESTAMP'}}));assert.equal(h.get('source-recovery').hidden,false);assert.match(h.get('source-recovery-text').textContent,/date and time/);
+ await h.click('source-retry');assert.equal(h.tools('read_reset_signal').at(-1).params.arguments.forceRefresh,true);assert.equal(h.get('source-recovery').hidden,true);
+});
+test('unrecognized setup response is never displayed as ready and raw text is not shown',async()=>{
+ const h=await harness({respond:name=>name==='check_setup'?{source:'setup-check',node:'ok',codex:'ok',login:'<img src=x>',errorCode:'private-secret'}:undefined});
+ assert.equal(h.get('setup-status').textContent,'Setup check unavailable');assert.equal(h.get('setup-login').textContent,'Unknown');assert.ok(!h.get('setup-guidance').textContent.includes('private-secret'));
 });

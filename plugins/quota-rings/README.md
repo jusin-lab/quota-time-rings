@@ -19,6 +19,14 @@ codex plugin add quota-rings@quota-rings-personal
 
 For a signed-in local Codex installation with Node.js 20+ and Git, run the two commands above, restart the desktop host, and open **Quota Time Rings**. No source build or plugin-specific credentials are required. Only macOS has been validated; web/mobile cannot run this local plugin.
 
+## In-panel help and setup checks / 面板内帮助与检查
+
+Use the **?** button for help in English, Simplified Chinese, Traditional Chinese, Japanese, Spanish, French or German. It follows the selected interface language. Startup checks run once on each panel opening alongside quota reads; they do not delay cached readings. **Check again** repeats the environment/sign-in check; **Refresh quota** verifies current quota access.
+
+The check distinguishes a missing runtime/service, no local ChatGPT sign-in, an unsupported sign-in mode and an unavailable check. It never signs in or switches accounts. If Node.js cannot start the plugin at all, the panel cannot run its check: install Node.js 20+ first and reopen the desktop app. Errors show translated next steps and retry/help controls.
+
+点击面板顶部 **?** 查看七种语言的使用帮助和检查结果。每次打开自动检查本机环境与登录配置；“重新检查”用于重查环境，“刷新额度”用于确认能否读取当前额度。读取异常和来源异常会分别显示处理方法。
+
 ## Requirements and sign-in / 安装与登录
 
 - Node.js 20+.
@@ -81,6 +89,7 @@ npm ci
 npm test
 npm run build
 npm run test:loading
+npm run test:onboarding
 node scripts/smoke-mcp.mjs
 node scripts/package-release.mjs
 ```
@@ -94,3 +103,7 @@ Project-authored code is MIT licensed; see [LICENSE](LICENSE). Bundled dependenc
 ## 0.3.4
 
 Clarifies future-dated source errors while retaining the timestamp checks. Removes machine-specific examples from packaging checks, uses synthetic source fixtures, and includes licensing and installation documentation for source distribution.
+
+## 0.3.5
+
+Adds seven-language in-panel help, read-only startup environment/sign-in checks and contextual recovery actions. Setup responses contain only status enums; account profile fields are discarded.

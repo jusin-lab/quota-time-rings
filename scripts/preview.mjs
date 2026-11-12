@@ -3,6 +3,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 import {readCodexLimits} from '../src/codex-reader.mjs';
+import {checkSetup} from '../src/setup-check.mjs';
 import {demoSnapshot} from '../src/quota.mjs';
 import {createResetSignalReader} from '../src/reset-provider.mjs';
 import {createQuotaCache} from '../src/quota-cache.mjs';
@@ -25,9 +26,9 @@ export async function startPreview({port=0,live=false}={}) {
    if(req.headers['x-quota-key']!==token || req.headers.origin!==`http://${host}`){res.writeHead(403).end();return;}
    let raw='';for await(const c of req){raw+=c;if(raw.length>1024){res.writeHead(413).end();return;}}
    let body;try{body=JSON.parse(raw);}catch{res.writeHead(400).end();return;}
-   if(!['read_quota','demo_quota','read_reset_signal'].includes(body.name)){res.writeHead(400).end();return;}
-   if(body.name==='read_quota'&&!live){res.writeHead(409).end();return;}
-   res.setHeader('Content-Type','application/json');res.end(JSON.stringify(body.name==='read_reset_signal'?await readResetSignal({forceRefresh:body.args?.forceRefresh===true}):body.name==='demo_quota'?demoSnapshot():await read({forceRefresh:body.args?.forceRefresh===true})));return;
+   if(!['read_quota','demo_quota','read_reset_signal','check_setup'].includes(body.name)){res.writeHead(400).end();return;}
+   if(['read_quota','check_setup'].includes(body.name)&&!live){res.writeHead(409).end();return;}
+   res.setHeader('Content-Type','application/json');res.end(JSON.stringify(body.name==='check_setup'?await checkSetup():body.name==='read_reset_signal'?await readResetSignal({forceRefresh:body.args?.forceRefresh===true}):body.name==='demo_quota'?demoSnapshot():await read({forceRefresh:body.args?.forceRefresh===true})));return;
   }
   res.writeHead(404).end();
  });

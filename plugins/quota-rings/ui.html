@@ -10,15 +10,17 @@
 @media(max-width:380px){body{padding:14px 18px 26px}.controls{margin-bottom:12px}.activity{margin-bottom:24px}.legend{gap:14px}.legend-row{font-size:13px;gap:7px}.legend-reading .secondary,.legend-row.time .legend-reading,.legend-row.prediction .legend-reading{font-size:11px}.legend-reading{gap:2px 5px}.separator{padding:0 3px}}
 @media(prefers-color-scheme:dark){:root{--paper:#141816;--surface:#202622;--ink:#edf3ee;--muted:#a0aaa2;--line:#343d36;--quota:#46cfaa;--time:#f0b361;--signal:#b28de7}.track{opacity:.15}.settings{box-shadow:0 12px 45px #0005}}
 @media(prefers-reduced-motion:reduce){.progress{transition:none}.loading-spinner,.status[data-state=loading] .status-dot{animation:none}}
+.help-panel,.recovery{margin:18px auto 0;max-width:400px;border:1px solid var(--line);border-radius:12px;padding:16px;font-size:12px;line-height:1.7;overflow-wrap:anywhere}.help-panel h2,.recovery h2{font-size:14px;margin:0}.help-panel h3{font-size:12px;margin:18px 0 6px}.help-panel ol{padding-left:20px}.help-panel li{margin:8px 0}.help-panel a{color:var(--quota)}.help-header,.setup-summary{display:flex;align-items:center;justify-content:space-between;gap:12px}.setup-summary{max-width:400px;margin:14px auto 0;color:var(--muted);font-size:11px;line-height:1.6}.setup-summary[data-state=attention],.recovery{color:var(--time)}.help-actions{display:flex;gap:12px;flex-wrap:wrap}.help-actions .text-button{font-size:12px;color:inherit}.help-panel dl{display:grid;gap:8px}.help-panel dl>div{display:flex;justify-content:space-between;gap:12px}.help-panel dd{margin:0;text-align:right}.help-panel pre{padding:10px;background:var(--paper);white-space:pre-wrap}.help-panel .text-button{font-size:12px}.help-panel a:focus-visible{outline-offset:2px}
 </style>
 </head>
 <body>
 <main id="main" aria-label="Quota and reset outlook">
 <h1 class="sr-only" id="title">Quota Time Rings</h1>
 <div class="controls">
-<span id="build-version" style="font-size:10px;color:var(--muted);margin-right:auto">v0.3.4</span>
+<span id="build-version" style="font-size:10px;color:var(--muted);margin-right:auto">v0.3.5</span>
 <div class="status" id="status" data-state="loading" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="status-hint"></span><span id="freshness" class="sr-only">Waiting for data</span></div>
 <button id="refresh" class="icon-button" type="button" aria-label="Refresh quota"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg><span id="refresh-label" class="sr-only">Refresh quota</span></button>
+<button id="help-toggle" class="icon-button" type="button" aria-label="Help &amp; setup" aria-expanded="false" aria-controls="help-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg></button>
 <button id="settings-toggle" class="icon-button" type="button" aria-label="Options" aria-expanded="false" aria-controls="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 3-.6 2.2-2 .9-2-.6-2 3.5 1.5 1.6v2.3L3.4 14l2 3.5 2-.6 2 .9.6 2.2h4l.6-2.2 2-.9 2 .6 2-3.5-1.5-1.1v-2.3L20.6 9l-2-3.5-2 .6-2-.9L14 3z"/><circle cx="12" cy="11.5" r="3"/></svg></button>
 </div>
 <div id="demo-banner" class="demo" hidden><strong id="demo-title">Demo · not your real quota</strong></div>
@@ -37,6 +39,17 @@
 </div>
 <p class="refresh-meta" id="quota-refresh-meta" aria-live="off"></p>
 <p class="source-note" id="prediction-note"><a id="prediction-source" target="_blank" rel="noopener noreferrer" hidden></a><span id="prediction-reason"></span><span id="prediction-update"></span></p>
+<div class="setup-summary" id="setup-summary" role="status" aria-live="polite"><span id="setup-status"></span><button class="text-button" id="setup-help" type="button">Help &amp; setup</button></div>
+<section class="recovery" id="quota-recovery" aria-labelledby="quota-recovery-title" hidden><h2 id="quota-recovery-title">Next steps</h2><p id="quota-recovery-text" role="status" aria-live="polite"></p><div class="help-actions"><button class="text-button" id="quota-retry" type="button">Refresh quota</button><button class="text-button" id="quota-help" type="button">Help &amp; setup</button></div></section>
+<section class="recovery" id="source-recovery" aria-labelledby="source-recovery-title" hidden><h2 id="source-recovery-title">Next steps</h2><p id="source-recovery-text" role="status" aria-live="polite"></p><button class="text-button" id="source-retry" type="button">Check signal</button></section>
+<section class="help-panel" id="help-panel" aria-labelledby="help-title" hidden>
+<div class="help-header"><h2 id="help-title" tabindex="-1">Help &amp; setup</h2><button id="help-close" class="text-button" type="button">Close help</button></div>
+<p id="help-intro"></p><ol><li id="help-quota"></li><li id="help-time"></li><li id="help-signal"></li><li id="help-cache"></li></ol>
+<h3 id="setup-title"></h3><dl><div><dt id="setup-node-label"></dt><dd id="setup-node"></dd></div><div><dt id="setup-codex-label"></dt><dd id="setup-codex"></dd></div><div><dt id="setup-login-label"></dt><dd id="setup-login"></dd></div></dl>
+<p id="setup-guidance" role="status" aria-live="polite"></p><button class="text-button" id="setup-retry" type="button">Check again</button><p class="note" id="setup-privacy"></p>
+<h3 id="login-title"></h3><p id="login-instruction"></p><pre><code>codex login</code></pre>
+<div class="help-actions"><a id="install-docs" href="https://learn.chatgpt.com/docs/cli" target="_blank" rel="noopener noreferrer"></a><a id="login-docs" href="https://learn.chatgpt.com/docs/auth" target="_blank" rel="noopener noreferrer"></a><a id="project-docs" href="https://github.com/jusin-lab/quota-time-rings" target="_blank" rel="noopener noreferrer"></a></div>
+</section>
 <section id="settings" class="settings" role="dialog" aria-labelledby="settings-title" hidden>
 <h2 id="settings-title">Options</h2>
 <div class="field"><label id="bucket-label" for="bucket">Quota type</label><select id="bucket" aria-labelledby="bucket-label" hidden disabled></select><span id="bucket-summary" class="field-value" aria-labelledby="bucket-label"></span></div>
@@ -177,6 +190,298 @@ for(const [key,strings]of Object.entries(loadingStrings))Object.assign(dictionar
 const sourceTimeStrings={"en": "Source scan time is ahead of this computer’s clock; keeping the last source if available.", "zh-CN": "来源扫描时间晚于本机时间；如有上次来源则保留。", "zh-TW": "來源掃描時間晚於本機時間；如有上次來源則保留。", "ja": "情報元のスキャン時刻がこの端末より先です。前回の情報があれば保持します。", "es": "La hora de la fuente es posterior al reloj local; se conserva la fuente anterior si existe.", "fr": "L’heure de la source est en avance sur cet appareil ; la source précédente est conservée si disponible.", "de": "Die Quellzeit liegt vor der lokalen Uhr; die vorherige Quelle bleibt, falls verfügbar."};
 for(const [key,value]of Object.entries(sourceTimeStrings))dictionaries[key].signalFutureTime=value;
 
+const helpStrings={
+ "en": {
+  "help": "Help & setup",
+  "closeHelp": "Close help",
+  "helpIntro": "Use your own local Codex sign-in. No key or password is entered into this plugin.",
+  "helpQuota": "Quota remaining comes from Codex. Choose a reported quota type or period in Options.",
+  "helpTime": "Time remaining is the natural quota window. Refresh after the countdown ends to confirm replenishment.",
+  "helpSignal": "The community estimate is independent and unconfirmed. It is neither an official schedule nor a probability.",
+  "helpCache": "On reopening, cached readings appear first and refresh in the background. Check the last-read time; demo values are fictional.",
+  "setupTitle": "Local setup",
+  "setupChecking": "Checking setup…",
+  "setupReady": "Local setup detected",
+  "setupAttention": "Setup needs attention",
+  "setupUnknown": "Setup check unavailable",
+  "setupIdle": "Not checked yet",
+  "nodeCheck": "Node.js 20+",
+  "codexCheck": "Codex service",
+  "loginCheck": "ChatGPT sign-in",
+  "checkOk": "Available",
+  "checkUnknown": "Unknown",
+  "checkMissing": "Not found",
+  "checkUnsupported": "Not supported",
+  "checkSignedOut": "Not signed in",
+  "checkChatgpt": "Configured",
+  "checkAgain": "Check again",
+  "setupPrivacy": "Checks use the official local service. Only status is returned; no email, account ID or credentials are saved by this check.",
+  "nextSteps": "Next steps",
+  "guideInstall": "Install Node.js 20+ and official Codex on this computer, then restart the desktop app and check again.",
+  "guideLogin": "Sign in to ChatGPT through official Codex on this computer. Then check again and refresh quota.",
+  "guideAccount": "Check the local sign-in and whether the account supports Codex quota queries. A failed read does not by itself mean you are signed out.",
+  "guideRetry": "Try again in a moment. If the problem persists, check the network and restart the desktop app. Previous readings stay visible.",
+  "guideUpdate": "Update official Codex and this plugin, restart the desktop app, then try again.",
+  "guideHost": "Open the installed plugin in the desktop app. Check Node.js 20+ and Codex, then restart the app. A disconnected preview cannot inspect your computer.",
+  "guideClock": "Check the computer’s date and time. If they are correct, wait for the source to correct its timestamp and retry. Account quota is independent.",
+  "guideSource": "Try the source again later. Missing or changed public information cannot confirm a reset; account quota remains separate.",
+  "signInTitle": "If sign-in is needed",
+  "loginInstruction": "In Terminal, run the command below and complete the official ChatGPT sign-in yourself. Then check again. The plugin never runs this command for you.",
+  "installDocs": "Install / update Codex ↗",
+  "loginDocs": "Official sign-in help ↗",
+  "projectDocs": "Project guide (English) ↗",
+  "setupSuccessNote": "ChatGPT sign-in is configured. Only a successful quota read confirms current quota access."
+ },
+ "zh-CN": {
+  "help": "使用帮助与检查",
+  "closeHelp": "关闭帮助",
+  "helpIntro": "使用你本机的 Codex 登录状态，无需向插件填写密钥或密码。",
+  "helpQuota": "额度剩余来自 Codex。在“选项”中可选择账号实际提供的额度类型和周期。",
+  "helpTime": "时间剩余表示自然额度周期。倒计时结束后，请刷新确认额度是否恢复。",
+  "helpSignal": "网友预测是独立、未经确认的估计，不是官方排期，也不是重置概率。",
+  "helpCache": "重新打开时先显示缓存并后台刷新，请留意最近读取时间；演示数值均为虚构。",
+  "setupTitle": "本机环境",
+  "setupChecking": "正在检查环境与登录…",
+  "setupReady": "已检测到本机环境与登录",
+  "setupAttention": "需要完成设置",
+  "setupUnknown": "暂时无法完成检查",
+  "setupIdle": "尚未检查",
+  "nodeCheck": "Node.js 20+",
+  "codexCheck": "Codex 服务",
+  "loginCheck": "ChatGPT 登录",
+  "checkOk": "可用",
+  "checkUnknown": "未知",
+  "checkMissing": "未找到",
+  "checkUnsupported": "不支持",
+  "checkSignedOut": "未登录",
+  "checkChatgpt": "已配置",
+  "checkAgain": "重新检查",
+  "setupPrivacy": "通过本机官方服务检查，仅返回状态；本检查不保存邮箱、账号 ID 或凭证。",
+  "nextSteps": "下一步操作",
+  "guideInstall": "在这台电脑安装 Node.js 20+ 和官方 Codex，然后重启桌面应用并重新检查。",
+  "guideLogin": "在这台电脑通过官方 Codex 登录 ChatGPT，然后重新检查并刷新额度。",
+  "guideAccount": "检查本机登录状态，以及账号是否支持 Codex 额度查询；读取失败本身不代表已退出登录。",
+  "guideRetry": "稍后重试；若持续失败，请检查网络并重启桌面应用。已有读数会保留。",
+  "guideUpdate": "更新官方 Codex 和本插件，重启桌面应用后重试。",
+  "guideHost": "请在桌面应用中打开已安装的插件。检查 Node.js 20+ 和 Codex 后重启应用；未连接的预览无法检查本机环境。",
+  "guideClock": "检查电脑日期与时间；若本机时间正确，请等待来源修正时间后重试。账户额度读取独立进行。",
+  "guideSource": "稍后重试来源。公开信息缺失或格式变化无法确认重置，不影响独立读取账户额度。",
+  "signInTitle": "需要登录时",
+  "loginInstruction": "在终端运行以下命令，自行完成官方 ChatGPT 登录，然后重新检查。插件不会替你执行此命令。",
+  "installDocs": "安装 / 更新 Codex ↗",
+  "loginDocs": "官方登录帮助 ↗",
+  "projectDocs": "项目操作指南 ↗",
+  "setupSuccessNote": "已配置 ChatGPT 登录；当前能否获取额度，以实际读取成功为准。"
+ },
+ "zh-TW": {
+  "help": "使用說明與檢查",
+  "closeHelp": "關閉說明",
+  "helpIntro": "使用本機的 Codex 登入狀態，無須向外掛填寫金鑰或密碼。",
+  "helpQuota": "剩餘額度來自 Codex。在「選項」中可選擇帳戶實際提供的額度類別與週期。",
+  "helpTime": "剩餘時間表示自然額度週期。倒數結束後，請重新整理以確認額度是否恢復。",
+  "helpSignal": "網友預測是獨立且未確認的估計，不是官方排程，也不是重置機率。",
+  "helpCache": "重新開啟時先顯示快取並在背景更新，請留意最近讀取時間；示範數值均為虛構。",
+  "setupTitle": "本機環境",
+  "setupChecking": "正在檢查環境與登入…",
+  "setupReady": "已偵測到本機環境與登入",
+  "setupAttention": "需要完成設定",
+  "setupUnknown": "暫時無法完成檢查",
+  "setupIdle": "尚未檢查",
+  "nodeCheck": "Node.js 20+",
+  "codexCheck": "Codex 服務",
+  "loginCheck": "ChatGPT 登入",
+  "checkOk": "可用",
+  "checkUnknown": "未知",
+  "checkMissing": "找不到",
+  "checkUnsupported": "不支援",
+  "checkSignedOut": "未登入",
+  "checkChatgpt": "已設定",
+  "checkAgain": "重新檢查",
+  "setupPrivacy": "透過本機官方服務檢查，僅傳回狀態；本檢查不儲存電子郵件、帳戶 ID 或憑證。",
+  "nextSteps": "下一步操作",
+  "guideInstall": "在這台電腦安裝 Node.js 20+ 與官方 Codex，再重新啟動桌面應用程式並檢查。",
+  "guideLogin": "在這台電腦透過官方 Codex 登入 ChatGPT，再重新檢查並更新額度。",
+  "guideAccount": "檢查本機登入狀態，以及帳戶是否支援 Codex 額度查詢；讀取失敗本身不代表已登出。",
+  "guideRetry": "稍後重試；若持續失敗，請檢查網路並重新啟動桌面應用程式。既有讀數會保留。",
+  "guideUpdate": "更新官方 Codex 與此外掛，重新啟動桌面應用程式後重試。",
+  "guideHost": "請在桌面應用程式開啟已安裝的外掛。檢查 Node.js 20+ 與 Codex 後重新啟動；未連線的預覽無法檢查本機環境。",
+  "guideClock": "檢查電腦日期與時間；若本機時間正確，請等待來源修正時間後重試。帳戶額度讀取獨立進行。",
+  "guideSource": "稍後重試來源。公開資訊缺失或格式變更無法確認重置，不影響獨立讀取帳戶額度。",
+  "signInTitle": "需要登入時",
+  "loginInstruction": "在終端機執行以下命令，自行完成官方 ChatGPT 登入，再重新檢查。外掛不會替你執行此命令。",
+  "installDocs": "安裝 / 更新 Codex ↗",
+  "loginDocs": "官方登入說明 ↗",
+  "projectDocs": "專案指南（簡體中文）↗",
+  "setupSuccessNote": "已設定 ChatGPT 登入；目前能否取得額度，以實際讀取成功為準。"
+ },
+ "ja": {
+  "help": "使い方と設定確認",
+  "closeHelp": "ヘルプを閉じる",
+  "helpIntro": "この端末の Codex ログインを使用します。プラグインにキーやパスワードを入力する必要はありません。",
+  "helpQuota": "残り利用枠は Codex の報告値です。「設定」で取得できた種類と期間を選べます。",
+  "helpTime": "残り時間は通常の利用枠の期間です。カウントダウン終了後に更新し、回復を確認してください。",
+  "helpSignal": "コミュニティの予測は独立した未確認の推測です。公式予定やリセットの確率ではありません。",
+  "helpCache": "再度開くとキャッシュを先に表示して更新します。取得時刻を確認してください。デモの数値は架空です。",
+  "setupTitle": "ローカル環境",
+  "setupChecking": "環境とログインを確認中…",
+  "setupReady": "環境とログイン設定を検出",
+  "setupAttention": "設定の確認が必要",
+  "setupUnknown": "確認できませんでした",
+  "setupIdle": "未確認",
+  "nodeCheck": "Node.js 20+",
+  "codexCheck": "Codex サービス",
+  "loginCheck": "ChatGPT ログイン",
+  "checkOk": "利用可能",
+  "checkUnknown": "不明",
+  "checkMissing": "見つかりません",
+  "checkUnsupported": "未対応",
+  "checkSignedOut": "未ログイン",
+  "checkChatgpt": "設定済み",
+  "checkAgain": "再確認",
+  "setupPrivacy": "公式ローカルサービスで確認し、状態のみを返します。メール、アカウント ID、認証情報はこの確認で保存しません。",
+  "nextSteps": "次の操作",
+  "guideInstall": "この端末に Node.js 20+ と公式 Codex をインストールし、デスクトップアプリを再起動して再確認してください。",
+  "guideLogin": "この端末の公式 Codex で ChatGPT にログインし、再確認して利用枠を更新してください。",
+  "guideAccount": "ローカルのログインと、アカウントが利用枠の取得に対応しているかを確認してください。取得失敗だけではログアウトとは判断できません。",
+  "guideRetry": "少し待って再試行してください。続く場合はネットワークを確認してアプリを再起動してください。前回の値は保持します。",
+  "guideUpdate": "公式 Codex とプラグインを更新し、アプリを再起動して再試行してください。",
+  "guideHost": "デスクトップアプリでインストール済みのプラグインを開いてください。Node.js 20+ と Codex を確認して再起動してください。未接続のプレビューでは端末を確認できません。",
+  "guideClock": "端末の日時を確認してください。正しい場合は情報元の時刻修正を待って再試行してください。利用枠は別に取得します。",
+  "guideSource": "後で情報元を再確認してください。公開情報の欠落や形式変更からリセットは確認できません。利用枠の取得は独立しています。",
+  "signInTitle": "ログインが必要な場合",
+  "loginInstruction": "ターミナルで以下のコマンドを実行し、公式の ChatGPT ログインを自分で完了して再確認してください。プラグインはこのコマンドを実行しません。",
+  "installDocs": "Codex のインストール / 更新 ↗",
+  "loginDocs": "公式ログインガイド ↗",
+  "projectDocs": "プロジェクトガイド（英語）↗",
+  "setupSuccessNote": "ChatGPT ログインは設定済みです。現在の利用枠へのアクセスは取得成功で確認できます。"
+ },
+ "es": {
+  "help": "Ayuda y configuración",
+  "closeHelp": "Cerrar ayuda",
+  "helpIntro": "Se usa el inicio de sesión local de Codex. No introduzcas claves ni contraseñas en este complemento.",
+  "helpQuota": "La cuota restante proviene de Codex. En Opciones puedes elegir los tipos y períodos disponibles.",
+  "helpTime": "El tiempo restante corresponde al período natural. Actualiza al terminar la cuenta atrás para confirmar la reposición.",
+  "helpSignal": "La estimación comunitaria es independiente y no está confirmada. No es un calendario oficial ni una probabilidad.",
+  "helpCache": "Al volver a abrir, se muestran datos guardados mientras se actualizan. Comprueba la hora de lectura; los datos de demostración son ficticios.",
+  "setupTitle": "Configuración local",
+  "setupChecking": "Comprobando entorno y sesión…",
+  "setupReady": "Entorno y sesión detectados",
+  "setupAttention": "Revisa la configuración",
+  "setupUnknown": "No se pudo comprobar",
+  "setupIdle": "Sin comprobar",
+  "nodeCheck": "Node.js 20+",
+  "codexCheck": "Servicio Codex",
+  "loginCheck": "Sesión de ChatGPT",
+  "checkOk": "Disponible",
+  "checkUnknown": "Desconocido",
+  "checkMissing": "No encontrado",
+  "checkUnsupported": "No compatible",
+  "checkSignedOut": "Sin sesión",
+  "checkChatgpt": "Configurada",
+  "checkAgain": "Comprobar de nuevo",
+  "setupPrivacy": "Se consulta el servicio local oficial y solo se devuelve el estado. Esta comprobación no guarda correos, identificadores ni credenciales.",
+  "nextSteps": "Próximos pasos",
+  "guideInstall": "Instala Node.js 20+ y Codex oficial en este equipo, reinicia la aplicación y comprueba de nuevo.",
+  "guideLogin": "Inicia sesión en ChatGPT mediante Codex oficial en este equipo. Después comprueba de nuevo y actualiza la cuota.",
+  "guideAccount": "Comprueba la sesión local y si la cuenta admite consultas de cuota de Codex. Un fallo de lectura no significa por sí solo que hayas cerrado sesión.",
+  "guideRetry": "Reinténtalo en un momento. Si persiste, comprueba la red y reinicia la aplicación. Se conservan las lecturas anteriores.",
+  "guideUpdate": "Actualiza Codex oficial y este complemento, reinicia la aplicación y vuelve a intentarlo.",
+  "guideHost": "Abre el complemento instalado en la aplicación de escritorio. Comprueba Node.js 20+ y Codex y reiníciala. Una vista previa desconectada no puede comprobar tu equipo.",
+  "guideClock": "Comprueba la fecha y hora del equipo. Si son correctas, espera a que la fuente corrija su hora y reinténtalo. La cuota se consulta por separado.",
+  "guideSource": "Vuelve a consultar la fuente más tarde. La información pública ausente o modificada no confirma un reinicio; la cuota se consulta por separado.",
+  "signInTitle": "Si necesitas iniciar sesión",
+  "loginInstruction": "Ejecuta el siguiente comando en Terminal y completa tú mismo el inicio de sesión oficial de ChatGPT. Después comprueba de nuevo. El complemento no ejecuta este comando.",
+  "installDocs": "Instalar / actualizar Codex ↗",
+  "loginDocs": "Ayuda oficial de acceso ↗",
+  "projectDocs": "Guía del proyecto (inglés) ↗",
+  "setupSuccessNote": "La sesión de ChatGPT está configurada. Solo una lectura correcta confirma el acceso actual a la cuota."
+ },
+ "fr": {
+  "help": "Aide et configuration",
+  "closeHelp": "Fermer l’aide",
+  "helpIntro": "La connexion locale de Codex est utilisée. Aucune clé ni aucun mot de passe ne sont à saisir dans ce plugin.",
+  "helpQuota": "Le quota restant est fourni par Codex. Choisissez un type ou une période disponible dans Options.",
+  "helpTime": "Le temps restant correspond à la période naturelle. Actualisez à la fin du compte à rebours pour confirmer le renouvellement.",
+  "helpSignal": "L’estimation communautaire est indépendante et non confirmée. Ce n’est ni un calendrier officiel ni une probabilité.",
+  "helpCache": "À la réouverture, les données en cache s’affichent pendant l’actualisation. Vérifiez l’heure de lecture ; la démonstration utilise des valeurs fictives.",
+  "setupTitle": "Configuration locale",
+  "setupChecking": "Vérification de l’environnement et de la connexion…",
+  "setupReady": "Environnement et connexion détectés",
+  "setupAttention": "Configuration à vérifier",
+  "setupUnknown": "Vérification indisponible",
+  "setupIdle": "Pas encore vérifié",
+  "nodeCheck": "Node.js 20+",
+  "codexCheck": "Service Codex",
+  "loginCheck": "Connexion ChatGPT",
+  "checkOk": "Disponible",
+  "checkUnknown": "Inconnu",
+  "checkMissing": "Introuvable",
+  "checkUnsupported": "Non pris en charge",
+  "checkSignedOut": "Non connecté",
+  "checkChatgpt": "Configurée",
+  "checkAgain": "Vérifier à nouveau",
+  "setupPrivacy": "Le service local officiel est interrogé et seul l’état est renvoyé. Cette vérification ne conserve ni e-mail, ni identifiant de compte, ni identifiants de connexion.",
+  "nextSteps": "Que faire ensuite",
+  "guideInstall": "Installez Node.js 20+ et Codex officiel sur cet ordinateur, redémarrez l’application, puis vérifiez à nouveau.",
+  "guideLogin": "Connectez-vous à ChatGPT via Codex officiel sur cet ordinateur, puis vérifiez à nouveau et actualisez le quota.",
+  "guideAccount": "Vérifiez la connexion locale et la prise en charge des requêtes de quota par le compte. Un échec de lecture ne signifie pas à lui seul une déconnexion.",
+  "guideRetry": "Réessayez dans un instant. Si le problème persiste, vérifiez le réseau et redémarrez l’application. Les anciennes valeurs sont conservées.",
+  "guideUpdate": "Mettez à jour Codex officiel et ce plugin, redémarrez l’application, puis réessayez.",
+  "guideHost": "Ouvrez le plugin installé dans l’application de bureau. Vérifiez Node.js 20+ et Codex, puis redémarrez. Un aperçu non connecté ne peut pas vérifier cet ordinateur.",
+  "guideClock": "Vérifiez la date et l’heure de l’ordinateur. Si elles sont correctes, attendez la correction de l’horodatage de la source. Le quota est lu séparément.",
+  "guideSource": "Consultez la source plus tard. Des informations publiques absentes ou modifiées ne confirment aucun renouvellement ; la lecture du quota reste indépendante.",
+  "signInTitle": "Si une connexion est nécessaire",
+  "loginInstruction": "Exécutez la commande ci-dessous dans le terminal et terminez vous-même la connexion officielle à ChatGPT. Vérifiez ensuite à nouveau. Le plugin n’exécute pas cette commande.",
+  "installDocs": "Installer / mettre à jour Codex ↗",
+  "loginDocs": "Aide officielle à la connexion ↗",
+  "projectDocs": "Guide du projet (anglais) ↗",
+  "setupSuccessNote": "La connexion ChatGPT est configurée. Seule une lecture réussie confirme l’accès actuel au quota."
+ },
+ "de": {
+  "help": "Hilfe und Einrichtung",
+  "closeHelp": "Hilfe schließen",
+  "helpIntro": "Die lokale Codex-Anmeldung wird verwendet. Im Plugin sind keine Schlüssel oder Passwörter einzugeben.",
+  "helpQuota": "Das verbleibende Kontingent stammt von Codex. Unter Optionen lassen sich verfügbare Kontingente und Zeiträume wählen.",
+  "helpTime": "Die Restzeit bezieht sich auf den regulären Zeitraum. Nach Ablauf aktualisieren, um die Auffüllung zu bestätigen.",
+  "helpSignal": "Die Community-Schätzung ist unabhängig und unbestätigt. Sie ist weder offizieller Zeitplan noch Wahrscheinlichkeit.",
+  "helpCache": "Beim erneuten Öffnen erscheinen zunächst gespeicherte Werte und werden aktualisiert. Abrufzeit beachten; Demowerte sind frei erfunden.",
+  "setupTitle": "Lokale Einrichtung",
+  "setupChecking": "Umgebung und Anmeldung werden geprüft…",
+  "setupReady": "Umgebung und Anmeldung erkannt",
+  "setupAttention": "Einrichtung prüfen",
+  "setupUnknown": "Prüfung nicht möglich",
+  "setupIdle": "Noch nicht geprüft",
+  "nodeCheck": "Node.js 20+",
+  "codexCheck": "Codex-Dienst",
+  "loginCheck": "ChatGPT-Anmeldung",
+  "checkOk": "Verfügbar",
+  "checkUnknown": "Unbekannt",
+  "checkMissing": "Nicht gefunden",
+  "checkUnsupported": "Nicht unterstützt",
+  "checkSignedOut": "Nicht angemeldet",
+  "checkChatgpt": "Eingerichtet",
+  "checkAgain": "Erneut prüfen",
+  "setupPrivacy": "Die Prüfung verwendet den offiziellen lokalen Dienst und gibt nur Statuswerte zurück. E-Mail, Konto-ID und Zugangsdaten werden dabei nicht gespeichert.",
+  "nextSteps": "Nächste Schritte",
+  "guideInstall": "Node.js 20+ und offizielles Codex auf diesem Computer installieren, die Desktop-App neu starten und erneut prüfen.",
+  "guideLogin": "Auf diesem Computer über offizielles Codex bei ChatGPT anmelden. Danach erneut prüfen und das Kontingent aktualisieren.",
+  "guideAccount": "Lokale Anmeldung und Unterstützung für Codex-Kontingentabfragen prüfen. Ein fehlgeschlagener Abruf allein bedeutet keine Abmeldung.",
+  "guideRetry": "In Kürze erneut versuchen. Bei anhaltenden Problemen Netzwerk prüfen und App neu starten. Bisherige Werte bleiben erhalten.",
+  "guideUpdate": "Offizielles Codex und dieses Plugin aktualisieren, die App neu starten und erneut versuchen.",
+  "guideHost": "Das installierte Plugin in der Desktop-App öffnen. Node.js 20+ und Codex prüfen und die App neu starten. Eine nicht verbundene Vorschau kann den Computer nicht prüfen.",
+  "guideClock": "Datum und Uhrzeit des Computers prüfen. Sind sie korrekt, auf eine Korrektur der Quellzeit warten. Das Kontingent wird unabhängig abgefragt.",
+  "guideSource": "Die Quelle später erneut prüfen. Fehlende oder geänderte öffentliche Informationen bestätigen keinen Reset. Die Kontingentabfrage bleibt unabhängig.",
+  "signInTitle": "Falls eine Anmeldung nötig ist",
+  "loginInstruction": "Den folgenden Befehl im Terminal ausführen und die offizielle ChatGPT-Anmeldung selbst abschließen. Anschließend erneut prüfen. Das Plugin führt den Befehl nicht aus.",
+  "installDocs": "Codex installieren / aktualisieren ↗",
+  "loginDocs": "Offizielle Anmeldehilfe ↗",
+  "projectDocs": "Projektanleitung (Englisch) ↗",
+  "setupSuccessNote": "Die ChatGPT-Anmeldung ist eingerichtet. Erst ein erfolgreicher Abruf bestätigt den aktuellen Zugriff auf das Kontingent."
+ }
+};
+for(const [key,strings]of Object.entries(helpStrings))Object.assign(dictionaries[key],strings);
+
+let setupData=null,setupBusy=false,setupError=null,setupStarted=false;
 let locale='en',languageChoice='auto',hostLocale=null,openaiLocale=window.openai?.locale||null,data=null,signalData=null,signalDemo=false,bucketIndex=0,windowIndex=0,quotaBusy=false,signalBusy=false,initializing=true,quotaFromCache=false,signalFromCache=false,bridge=false,bridgePromise=null,rpcId=0,hostOrigin=null,latestError=null,signalError=null,autoRefreshSeconds=60,lastQuotaAttempt=0,lastSignalAttempt=0,lastEntryRefresh=-Infinity,nextQuotaRunAt=null,lastQuotaSuccessAt=null;
 const pending=new Map(),zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
 try{const saved=window.localStorage?.getItem('quota-rings-language');if(saved==='auto'||Object.hasOwn(dictionaries,saved))languageChoice=saved;}catch{}
@@ -203,6 +508,34 @@ function duration(mins){if(!finite(mins)||mins<=0)return t('durationUnknown');if
 function countdown(ms){let s=Math.max(0,Math.ceil(ms/1000));const values={day:Math.floor(s/86400),hour:Math.floor(s%86400/3600),minute:Math.floor(s%3600/60),second:s%60};let parts=Object.entries(values).filter(([k,v])=>v>0||k==='second').map(([k,v])=>unit(v,k));return new Intl.ListFormat(locale,{style:'short',type:'unit'}).format(parts);}
 function current(){return data?.buckets?.[bucketIndex]?.windows?.[windowIndex]||null;}
 function applyLocale(){locale=resolveLocale();if(document.documentElement)document.documentElement.lang=locale;document.title=t('page');const labels={title:'page','demo-title':'demoTitle','settings-title':'options','details-label':'details','bucket-label':'bucket','window-label':'window','quota-title':'quotaLegend','time-title':'timeLegend','prediction-title':'predictionLegend','reset-label':'resetLabel','fetched-label':'fetchedLabel','signal-title':'signalTitle','prediction-dial-label':'predictionLabel','signal-published-label':'publishedLabel','signal-checked-label':'checkedLabel','signal-verification-label':'verificationLabel','signal-zone-label':'zoneLabel','signal-window-label':'windowLabel','signal-assumption-label':'assumptionLabel','original-link':'original','evidence-link':'evidence','signal-disclaimer':'signalDisclaimer','language-label':'language','language-auto':'auto',demo:'demo','auto-refresh-label':'autoRefresh','auto-60':'auto60','auto-300':'auto300','auto-off':'autoOff'};for(const [id,key]of Object.entries(labels))text(id,t(key));attr('main','aria-label',t('main'));attr('settings-toggle','aria-label',t('options'));attr('settings-toggle','title',t('options'));attr('bucket','aria-label',t('chooseBucket'));attr('window','aria-label',t('chooseWindow'));attr('account-rings','aria-label',t('ringsLabel'));attr('language','aria-label',t('language'));$('language').value=languageChoice;attr('auto-refresh','aria-label',t('autoRefresh'));$('auto-refresh').value=autoRefreshSeconds?String(autoRefreshSeconds):'off';options();render();}
+function renderSetup(){
+ const labels={'help-title':'help','help-close':'closeHelp','setup-help':'help','quota-help':'help','help-intro':'helpIntro','help-quota':'helpQuota','help-time':'helpTime','help-signal':'helpSignal','help-cache':'helpCache','setup-title':'setupTitle','setup-node-label':'nodeCheck','setup-codex-label':'codexCheck','setup-login-label':'loginCheck','setup-privacy':'setupPrivacy','login-title':'signInTitle','login-instruction':'loginInstruction','install-docs':'installDocs','login-docs':'loginDocs','project-docs':'projectDocs'};
+ for(const [id,key]of Object.entries(labels))text(id,t(key));
+ attr('help-toggle','aria-label',t('help'));attr('help-toggle','title',t('help'));
+ attr('project-docs','href',locale.startsWith('zh')?'https://github.com/jusin-lab/quota-time-rings/blob/main/GETTING_STARTED.zh-CN.md':'https://github.com/jusin-lab/quota-time-rings');
+ const ready=setupData?.node==='ok'&&setupData?.codex==='ok'&&setupData?.login==='chatgpt'&&!setupError;
+ const key=setupBusy||initializing?'setupChecking':setupError?'setupUnknown':!setupData?'setupIdle':ready?'setupReady':'setupAttention';
+ text('setup-status',t(key));attr('setup-summary','data-state',key==='setupAttention'||key==='setupUnknown'?'attention':'normal');
+ const states={ok:'checkOk',unknown:'checkUnknown',missing:'checkMissing',unsupported:'checkUnsupported',signed_out:'checkSignedOut',chatgpt:'checkChatgpt'};
+ for(const name of ['node','codex','login'])text('setup-'+name,t(setupBusy?'setupChecking':states[setupData?.[name]]||'checkUnknown'));
+ const guide=setupBusy||initializing?'setupChecking':setupData?.node==='unsupported'||setupData?.codex==='missing'?'guideInstall':setupData?.login==='signed_out'||setupData?.login==='unsupported'?'guideLogin':setupError?recoveryKey(setupError):ready?'setupSuccessNote':'guideHost';
+ text('setup-guidance',t(guide));text('setup-retry',t(setupBusy?'setupChecking':'checkAgain'));$('setup-retry').disabled=setupBusy||initializing;
+}
+function recoveryKey(code){return ({NODE_UNSUPPORTED:'guideInstall',CODEX_NOT_FOUND:'guideInstall',ACCOUNT_UNAVAILABLE:'guideAccount',NO_LIMITS:'guideAccount',TIMEOUT:'guideRetry',INVALID_RESPONSE:'guideUpdate',UI_INVALID_RESPONSE:'guideUpdate',SERVER_EXITED:'guideUpdate',UI_NOT_CONNECTED:'guideHost',UI_HOST_ERROR:'guideHost',SOURCE_FUTURE_TIMESTAMP:'guideClock'})[code]||'guideRetry';}
+function renderQuotaRecovery(){
+ const code=!initializing&&!quotaBusy&&data?.source!=='demo'&&(latestError||data?.error?.code);
+ $('quota-recovery').hidden=!code;text('quota-recovery-title',t('nextSteps'));text('quota-recovery-text',code?t(recoveryKey(code)):'');text('quota-retry',t(quotaBusy?'loading':'refresh'));text('quota-help',t('help'));$('quota-retry').disabled=quotaBusy;
+}
+function renderSourceRecovery(code){
+ const show=code&&!initializing&&!signalBusy&&!signalDemo&&!['NO_RELIABLE_SIGNAL','NOT_CONFIGURED'].includes(code);
+ $('source-recovery').hidden=!show;text('source-recovery-title',t('nextSteps'));text('source-recovery-text',show?t(code==='SOURCE_FUTURE_TIMESTAMP'?'guideClock':'guideSource'):'');text('source-retry',t(signalBusy?'signalLoading':'signalRefresh'));$('source-retry').disabled=signalBusy;
+}
+function setupShape(x){return x?.schemaVersion===1&&x.source==='setup-check'&&['ok','unsupported'].includes(x.node)&&['ok','missing','unknown'].includes(x.codex)&&['chatgpt','signed_out','unsupported','unknown'].includes(x.login)&&(!x.errorCode||['NODE_UNSUPPORTED','CODEX_NOT_FOUND','READ_FAILED','TIMEOUT','SERVER_EXITED','INVALID_RESPONSE','ACCOUNT_UNAVAILABLE'].includes(x.errorCode));}
+async function runSetupCheck(){
+ if(setupBusy)return;setupStarted=true;setupBusy=true;setupError=null;setupData=null;renderSetup();
+ try{const r=await invoke('check_setup'),next=r?.structuredContent||r;if(!setupShape(next))throw fault('UI_INVALID_RESPONSE');setupData=next;setupError=next.errorCode||null;}catch(e){setupError=e?.code||'READ_FAILED';}finally{setupBusy=false;renderSetup();}
+}
+function setHelp(open,restoreFocus=false){$('help-panel').hidden=!open;attr('help-toggle','aria-expanded',String(open));if(open){setSettings(false);$('help-title').focus?.();if(!setupStarted&&!initializing)void runSetupCheck();}else if(restoreFocus)$('help-toggle').focus?.();}
 function firstSetting(){return ['bucket','window','auto-refresh','language'].map($).find(el=>!el.hidden&&!el.disabled);}
 function options(){
  const focused=document.activeElement;
@@ -220,7 +553,7 @@ function ring(kind,value,label){$(kind+'-gauge').classList.toggle('unknown',valu
 const errorKeys={CODEX_NOT_FOUND:'codexMissing',TIMEOUT:'timeout',ACCOUNT_UNAVAILABLE:'accountUnavailable',INVALID_RESPONSE:'invalidQuota',SERVER_EXITED:'serverExited',READ_FAILED:'readFailed',NO_LIMITS:'noLimits',SOURCE_FUTURE_TIMESTAMP:'signalFutureTime',SOURCE_UNAVAILABLE:'signalUnavailable',SOURCE_CHANGED:'signalChanged',NO_RELIABLE_SIGNAL:'signalNone',NOT_CONFIGURED:'signalNotConfigured',UI_INVALID_RESPONSE:'invalidResponse',UI_NOT_CONNECTED:'notConnected',UI_HOST_ERROR:'hostError'};
 function errorMessage(code,fallback){return t(errorKeys[code]||fallback);}
 function shortCountdown(ms){const minutes=Math.max(0,Math.floor(ms/60000)),days=Math.floor(minutes/1440),hours=Math.floor(minutes%1440/60),mins=minutes%60;const parts=days?[unit(days,'day'),unit(hours,'hour')]:hours?[unit(hours,'hour'),...(mins?[unit(mins,'minute')]:[])]:[unit(mins,'minute')];return new Intl.ListFormat(locale,{style:'narrow',type:'unit'}).format(parts);}
-function renderQuota(){const now=Date.now(),w=current(),demo=data?.source==='demo',resetValid=finite(w?.resetsAt)&&w.resetsAt>0&&Number.isFinite(new Date(w.resetsAt*1000).getTime()),durationValid=finite(w?.windowDurationMins)&&w.windowDurationMins>0;const remaining=resetValid?w.resetsAt*1000-now:null,expired=resetValid&&remaining<=0,clockMismatch=resetValid&&durationValid&&remaining>w.windowDurationMins*60000+60000;const q=finite(w?.usedPercent)&&w.usedPercent>=0?clamp(100-w.usedPercent):null,ratio=resetValid&&durationValid?clamp(remaining/(w.windowDurationMins*60000)*100):null,fetched=typeof data?.fetchedAt==='string'?Date.parse(data.fetchedAt):NaN,age=now-fetched;const loading=initializing||quotaBusy,error=loading?null:latestError||data?.error?.code,stale=!Number.isFinite(age)||age>300000||age< -60000||expired||clockMismatch||Boolean(error);ring('quota',q,'quotaLabel');ring('time',ratio,'timeTitle');$('demo-banner').hidden=!demo&&!signalDemo;$('quota-loading').hidden=!(loading&&!data?.buckets?.some(b=>b.windows.length));text('quota-loading-label',t('initialLoading'));attr('account-rings','aria-busy',String(loading));$('status').dataset.state=loading?'loading':quotaFromCache||stale?'stale':'fresh';text('refresh-label',t(quotaBusy?'loading':'refresh'));attr('refresh','aria-label',t(quotaBusy?'loading':'refresh'));attr('refresh','title',t(quotaBusy?'loading':'refresh'));$('refresh').disabled=quotaBusy;$('demo').disabled=quotaBusy;text('auto-note',t(demo?'autoPaused':'autoNote'));const relative=!Number.isFinite(age)||age<60000?t('justNow'):new Intl.RelativeTimeFormat(locale,{numeric:'auto'}).format(-Math.floor(age/60000),'minute');const freshness=t(!data?'waiting':demo?'demoData':latestError?'refreshFailed':clockMismatch?'clockMismatch':expired?'expiredQuota':stale?'staleQuota':'fresh',{age:relative});const statusHint=loading?t(quotaFromCache?'cachedRefreshing':data?.buckets?.some(b=>b.windows.length)?'quotaRefreshing':'initialLoading'):error?t('compactFailed')+(quotaFromCache?' · '+t('cachedData'):''):quotaFromCache?t('cachedData'):!data?t('compactWaiting'):stale&&!demo?t('compactStale'):demo?'':t('compactFresh');text('freshness',loading?statusHint:freshness);text('status-hint',statusHint);attr('status','title',error?errorMessage(error,'readFailed'):loading||quotaFromCache?statusHint:freshness);$('time-when').hidden=!resetValid;text('time-when',resetValid?resetWhen(w.resetsAt*1000):'');$('time-secondary').hidden=!resetValid;text('time-sub',!resetValid?t('resetUnknown'):expired?t('resetReached'):t('remainingShort',{time:shortCountdown(remaining)}));text('reset',resetValid?date(w.resetsAt*1000):t('unknown'));text('timezone',t('periodZone',{period:duration(w?.windowDurationMins),zone:zone||t('localZone')}));text('fetched',Number.isFinite(fetched)?date(fetched):t('notRead'));text('source',t(demo?'demoSource':data?'quotaSource':'waitingSource'));text('error',error?errorMessage(error,'readFailed'):'');const quotaTip=`${t('quotaLabel')}: ${q===null?t('unknown'):percent(q)}. ${freshness}`;const timeTip=`${t('timeTitle')}: ${resetValid?date(w.resetsAt*1000):t('unknown')} · ${zone||t('localZone')} · ${duration(w?.windowDurationMins)}`;for(const [id,value]of [['quota-row',quotaTip],['time-row',timeTip]]){attr(id,'title',value);attr(id,'aria-label',value);}renderRefreshMeta();}
+function renderQuota(){const now=Date.now(),w=current(),demo=data?.source==='demo',resetValid=finite(w?.resetsAt)&&w.resetsAt>0&&Number.isFinite(new Date(w.resetsAt*1000).getTime()),durationValid=finite(w?.windowDurationMins)&&w.windowDurationMins>0;const remaining=resetValid?w.resetsAt*1000-now:null,expired=resetValid&&remaining<=0,clockMismatch=resetValid&&durationValid&&remaining>w.windowDurationMins*60000+60000;const q=finite(w?.usedPercent)&&w.usedPercent>=0?clamp(100-w.usedPercent):null,ratio=resetValid&&durationValid?clamp(remaining/(w.windowDurationMins*60000)*100):null,fetched=typeof data?.fetchedAt==='string'?Date.parse(data.fetchedAt):NaN,age=now-fetched;const loading=initializing||quotaBusy,error=loading?null:latestError||data?.error?.code,stale=!Number.isFinite(age)||age>300000||age< -60000||expired||clockMismatch||Boolean(error);ring('quota',q,'quotaLabel');ring('time',ratio,'timeTitle');$('demo-banner').hidden=!demo&&!signalDemo;$('quota-loading').hidden=!(loading&&!data?.buckets?.some(b=>b.windows.length));text('quota-loading-label',t('initialLoading'));attr('account-rings','aria-busy',String(loading));$('status').dataset.state=loading?'loading':quotaFromCache||stale?'stale':'fresh';text('refresh-label',t(quotaBusy?'loading':'refresh'));attr('refresh','aria-label',t(quotaBusy?'loading':'refresh'));attr('refresh','title',t(quotaBusy?'loading':'refresh'));$('refresh').disabled=quotaBusy;$('demo').disabled=quotaBusy;text('auto-note',t(demo?'autoPaused':'autoNote'));const relative=!Number.isFinite(age)||age<60000?t('justNow'):new Intl.RelativeTimeFormat(locale,{numeric:'auto'}).format(-Math.floor(age/60000),'minute');const freshness=t(!data?'waiting':demo?'demoData':latestError?'refreshFailed':clockMismatch?'clockMismatch':expired?'expiredQuota':stale?'staleQuota':'fresh',{age:relative});const statusHint=loading?t(quotaFromCache?'cachedRefreshing':data?.buckets?.some(b=>b.windows.length)?'quotaRefreshing':'initialLoading'):error?t('compactFailed')+(quotaFromCache?' · '+t('cachedData'):''):quotaFromCache?t('cachedData'):!data?t('compactWaiting'):stale&&!demo?t('compactStale'):demo?'':t('compactFresh');text('freshness',loading?statusHint:freshness);text('status-hint',statusHint);attr('status','title',error?errorMessage(error,'readFailed'):loading||quotaFromCache?statusHint:freshness);$('time-when').hidden=!resetValid;text('time-when',resetValid?resetWhen(w.resetsAt*1000):'');$('time-secondary').hidden=!resetValid;text('time-sub',!resetValid?t('resetUnknown'):expired?t('resetReached'):t('remainingShort',{time:shortCountdown(remaining)}));text('reset',resetValid?date(w.resetsAt*1000):t('unknown'));text('timezone',t('periodZone',{period:duration(w?.windowDurationMins),zone:zone||t('localZone')}));text('fetched',Number.isFinite(fetched)?date(fetched):t('notRead'));text('source',t(demo?'demoSource':data?'quotaSource':'waitingSource'));text('error',error?errorMessage(error,'readFailed'):'');const quotaTip=`${t('quotaLabel')}: ${q===null?t('unknown'):percent(q)}. ${freshness}`;const timeTip=`${t('timeTitle')}: ${resetValid?date(w.resetsAt*1000):t('unknown')} · ${zone||t('localZone')} · ${duration(w?.windowDurationMins)}`;for(const [id,value]of [['quota-row',quotaTip],['time-row',timeTip]]){attr(id,'title',value);attr(id,'aria-label',value);}renderRefreshMeta();renderQuotaRecovery();}
 function resetWhen(value){return new Intl.DateTimeFormat(locale,{weekday:'short',hour:'2-digit',minute:'2-digit',timeZone:zone}).format(value);}
 function compactPrediction(p){if(p.kind!=='future'&&p.kind!=='open')return t(p.kind==='expired'?'windowEnded':'unknown');if(p.inferred)return resetWhen(p.estimate);return p.start===p.end?resetWhen(p.start):resetWhen(p.start)+' – '+resetWhen(p.end);}
 function compactPredictionRemaining(p,now){if(p.kind!=='future'&&p.kind!=='open')return '';if(p.inferred)return p.estimate<=now?t('estimatePassed'):t('remainingShort',{time:shortCountdown(p.estimate-now)});if(p.kind==='open')return t('untilEnd',{time:shortCountdown(p.end-now)});return p.start===p.end?t('remainingShort',{time:shortCountdown(p.start-now)}):t('untilRange',{a:shortCountdown(p.start-now),b:shortCountdown(p.end-now)});}
@@ -279,9 +612,10 @@ function renderSignal(){
  sourceLink('original-link',signalDemo?null:s?.originalUrl);sourceLink('evidence-link',signalDemo||safeUrl(s?.evidenceUrl)===safeUrl(s?.originalUrl)?null:s?.evidenceUrl);text('evidence-link',t(signalData?.verification==='primary'?'supportingSource':'evidence'));text('signal-refresh',t(signalBusy?'signalLoading':'signalRefresh'));$('signal-refresh').disabled=signalBusy||data?.source==='demo';
  const tip=t('predictionLegend')+': '+(p.inferred?t('inferred')+' '+date(p.estimate,'minute')+'. ':'')+(known?$('prediction-percent').textContent+' · '+$('prediction-remaining').textContent+'. ':'')+$('signal-window').textContent+'. '+flags.join(' · ')+'. '+t('signalDisclaimer');attr('prediction-row','title',tip);attr('prediction-row','aria-label',tip);
  renderSource(p,failure,stale);
+ renderSourceRecovery(failure);
 }
 
-function render(){renderQuota();renderSignal();}
+function render(){renderQuota();renderSignal();renderSetup();}
 function acceptQuota(response){
  const next=response?.structuredContent||response;if(!quotaShape(next))return false;
  const oldBucket=data?.buckets?.[bucketIndex]?.id,oldKind=current()?.kind;
@@ -308,8 +642,14 @@ async function invoke(name,args={}){await bridgePromise;if(bridge)return request
 async function readQuota(name='read_quota',forceRefresh=false){if(quotaBusy)return;quotaBusy=true;nextQuotaRunAt=null;lastQuotaAttempt=Date.now();latestError=null;renderQuota();try{const result=await invoke(name,name==='read_quota'?{forceRefresh}:{});if(!acceptQuota(result))throw fault('UI_INVALID_RESPONSE');if(name==='demo_quota'&&data?.source==='demo')acceptSignal(signalFixture(),true);else if(name==='read_quota'&&signalDemo){signalDemo=false;signalData=null;renderSignal();void readSignal();}}catch(e){latestError=e?.code||'READ_FAILED';renderQuota();}finally{quotaBusy=false;scheduleQuota();renderQuota();}}
 async function readSignal(forceRefresh=false){if(signalBusy||data?.source==='demo')return;signalBusy=true;lastSignalAttempt=Date.now();signalError=null;renderSignal();try{const result=await invoke('read_reset_signal',{forceRefresh});if(data?.source==='demo')return;if(!acceptSignal(result))throw fault('UI_INVALID_RESPONSE');}catch(e){if(data?.source!=='demo'){signalError=e?.code||'SOURCE_UNAVAILABLE';renderSignal();}}finally{signalBusy=false;renderSignal();}}
 function setSettings(open,restoreFocus=false){$('settings').hidden=!open;attr('settings-toggle','aria-expanded',String(open));if(open)firstSetting()?.focus?.();if(!open&&restoreFocus)$('settings-toggle').focus?.();}
-$('settings-toggle').addEventListener('click',()=>setSettings($('settings').hidden));
-document.addEventListener?.('keydown',e=>{if(e.key==='Escape'&&!$('settings').hidden){setSettings(false,true);e.preventDefault?.();}});
+$('settings-toggle').addEventListener('click',()=>{setHelp(false);setSettings($('settings').hidden);});
+$('help-toggle').addEventListener('click',()=>setHelp($('help-panel').hidden));
+$('help-close').addEventListener('click',()=>setHelp(false,true));
+for(const id of ['setup-help','quota-help'])$(id).addEventListener('click',()=>setHelp(true));
+$('setup-retry').addEventListener('click',()=>void runSetupCheck());
+$('quota-retry').addEventListener('click',()=>void readQuota('read_quota',true));
+$('source-retry').addEventListener('click',()=>void readSignal(true));
+document.addEventListener?.('keydown',e=>{if(e.key==='Escape'&&!$('help-panel').hidden){setHelp(false,true);e.preventDefault?.();}if(e.key==='Escape'&&!$('settings').hidden){setSettings(false,true);e.preventDefault?.();}});
 document.addEventListener?.('click',e=>{if(!$('settings').hidden&&!$('settings').contains?.(e.target)&&!$('settings-toggle').contains?.(e.target))setSettings(false);});
 $('refresh').addEventListener('click',()=>void readQuota('read_quota',true));$('signal-refresh').addEventListener('click',()=>void readSignal(true));$('demo').addEventListener('click',()=>void readQuota('demo_quota'));$('bucket').addEventListener('change',e=>{bucketIndex=Number(e.target.value);windowIndex=0;options();renderQuota();});$('window').addEventListener('change',e=>{windowIndex=Number(e.target.value);renderQuota();});$('language').addEventListener('change',e=>{const value=e.target.value;languageChoice=value==='auto'||Object.hasOwn(dictionaries,value)?value:'auto';try{window.localStorage?.setItem('quota-rings-language',languageChoice);}catch{}applyLocale();});
 $('auto-refresh').addEventListener('change',e=>{autoRefreshSeconds=['60','300'].includes(e.target.value)?Number(e.target.value):0;try{window.localStorage?.setItem('quota-rings-auto-refresh',autoRefreshSeconds?String(autoRefreshSeconds):'off');}catch{}scheduleQuota();renderQuota();});
@@ -331,7 +671,7 @@ window.addEventListener('openai:set_globals',e=>{const globals=e.detail?.globals
 restoreCache();applyLocale();bridgePromise=initialize();if(window.__QUOTA_INITIAL__)acceptQuota(window.__QUOTA_INITIAL__);else if(window.openai?.toolOutput)accept(window.openai.toolOutput);if(window.__RESET_SIGNAL_INITIAL__)acceptSignal(window.__RESET_SIGNAL_INITIAL__);
 // Parallel first reads: external signal availability never blocks account quota.
 // No prompt, message submission, or model turn is needed for either read.
-bridgePromise.then(ready=>{initializing=false;if(ready||canCallTools()){enter();if(!signalData&&!signalBusy&&isVisible())void readSignal();}else{latestError='UI_NOT_CONNECTED';}render();});
+bridgePromise.then(ready=>{initializing=false;if(ready||canCallTools()){void runSetupCheck();enter();if(!signalData&&!signalBusy&&isVisible())void readSignal();}else{latestError='UI_NOT_CONNECTED';setupError='UI_NOT_CONNECTED';}render();});
 // The displayed seconds and the actual quota read share this exact deadline.
 // A completed attempt schedules the next one; hidden/Off/demo have no deadline.
 setInterval(()=>{if(nextQuotaRunAt!==null&&isVisible()&&autoRefreshSeconds>0&&data?.source!=='demo'&&!quotaBusy&&Date.now()>=nextQuotaRunAt&&canCallTools())void readQuota();if(isVisible()&&autoRefreshSeconds>0&&data?.source!=='demo'&&!signalBusy&&Date.now()-lastSignalAttempt>=900000&&canCallTools())void readSignal();render();},1000);

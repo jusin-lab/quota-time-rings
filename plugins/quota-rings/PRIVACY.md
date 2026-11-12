@@ -1,6 +1,8 @@
 # Privacy and local data
 
-Quota Time Rings runs on the user's computer. The official local Codex App Server performs authenticated account access using the user's existing sign-in. This plugin does not read passwords, browser cookies, authentication files, API keys, account email addresses or conversation history.
+Quota Time Rings runs on the user's computer. The official local Codex App Server performs authenticated account access using the user's existing sign-in. This plugin does not read passwords, browser cookies, authentication files, API keys or conversation history.
+
+On panel startup and explicit rechecks, the plugin checks Node.js and asks the official local service for `account/read` with `refreshToken: false`. That service response may contain profile fields; the adapter discards them and returns only runtime, service and sign-in status enums plus a check time and a safe error code. No account email, account ID, plan details, raw error, executable path or credentials leave this check. Results are kept only in panel memory, not persisted in browser storage. A configured ChatGPT sign-in does not prove that its token is still valid or that a quota query will succeed. The check never initiates sign-in, switches accounts or changes settings.
 
 The plugin receives normalized quota bucket names, percentages, window lengths, reset times and retrieval times. It returns those display values through the MCP host; depending on how the host invokes the tool, the result can appear in the conversation or model context. It does not transmit quota readings to the public-source provider.
 

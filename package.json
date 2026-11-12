@@ -1,7 +1,7 @@
 {
   "name": "quota-rings-dev",
   "private": true,
-  "version": "0.3.4",
+  "version": "0.3.5",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -10,7 +10,8 @@
     "preview:live": "node scripts/preview.mjs --live",
     "check:live": "node scripts/check-live.mjs",
     "test:ui": "node --test test/ui*.test.mjs",
-    "test:loading": "node scripts/loading-runtime-qa.mjs"
+    "test:loading": "node scripts/loading-runtime-qa.mjs",
+    "test:onboarding": "node scripts/onboarding-runtime-qa.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "2.0.4",
