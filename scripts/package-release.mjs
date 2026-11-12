@@ -2,7 +2,7 @@ import{mkdirSync,rmSync,cpSync,readFileSync,writeFileSync,readdirSync}from'node:
 const root=process.cwd(),version=JSON.parse(readFileSync('plugins/quota-rings/.codex-plugin/plugin.json')).version;
 const stage=resolve('.validation/public-release-'+version),plugin=join(stage,'plugins/quota-rings');
 rmSync(stage,{recursive:true,force:true});mkdirSync(plugin,{recursive:true});
-const allowed=['.codex-plugin','.mcp.json','launch.sh','server.mjs','ui.html','skills','licenses','LICENSE','THIRD_PARTY_NOTICES.md','PRIVACY.md','README.md','assets'];
+const allowed=['.codex-plugin','.mcp.json','launch.sh','server.mjs','ui.html','skills','licenses','LICENSE','THIRD_PARTY_NOTICES.md','PRIVACY.md','README.md','GETTING_STARTED.zh-CN.md','assets'];
 for(const name of allowed){try{cpSync('plugins/quota-rings/'+name,join(plugin,name),{recursive:true,errorOnExist:true})}catch(e){if(e.code!=='ENOENT')throw e}}
 mkdirSync(join(stage,'.agents/plugins'),{recursive:true});cpSync('.agents/plugins/marketplace.json',join(stage,'.agents/plugins/marketplace.json'));cpSync('release',join(stage,'release'),{recursive:true});
 function walk(p){return readdirSync(p,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(join(p,e.name)):[join(p,e.name)])}

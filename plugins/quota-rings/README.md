@@ -4,6 +4,21 @@ A local, read-only Codex quota panel with three rings: remaining quota, time unt
 
 本地只读额度插件：展示 Codex 额度剩余、自然重置倒计时，以及独立的网友重置预测。没有缓存时显示加载状态，有缓存时先展示并后台刷新。
 
+**[中文安装与使用指南](GETTING_STARTED.zh-CN.md)** · [Privacy / 隐私说明](PRIVACY.md)
+
+## Quick start / 快速开始
+
+已安装 Node.js 20+、Git 和支持插件命令的 Codex，并已在本机登录自己的 ChatGPT 账号？在终端依次运行：
+
+```sh
+codex plugin marketplace add jusin-lab/quota-time-rings --ref main
+codex plugin add quota-rings@quota-rings-personal
+```
+
+重启桌面应用，在插件/侧栏打开“额度时间环”；也可以在新对话中说“用额度时间环查看我的额度”。首次打开会显示加载状态，再次打开可先显示缓存并自动刷新。无需下载源码、编译或填写 API Key。尚未准备好环境，请从[新手指南](GETTING_STARTED.zh-CN.md)开始。
+
+For a signed-in local Codex installation with Node.js 20+ and Git, run the two commands above, restart the desktop host, and open **Quota Time Rings**. No source build or plugin-specific credentials are required. Only macOS has been validated; web/mobile cannot run this local plugin.
+
 ## Requirements and sign-in / 安装与登录
 
 - Node.js 20+.
@@ -14,7 +29,7 @@ A local, read-only Codex quota panel with three rings: remaining quota, time unt
 
 **无需向插件填写 API Key、密码或令牌。** 用户先在本机通过官方 Codex 登录自己的 ChatGPT 账号，再安装插件。它读取的是使用者本机账号的 Codex 额度，不是开发者的账号，也不是所有 ChatGPT 模型的额度。
 
-Download the source archive or clone the public repository, then run the installation commands from its root:
+The GitHub installation above is recommended for normal use. For local development, clone the repository and register its directory instead:
 
 ```sh
 git clone https://github.com/jusin-lab/quota-time-rings.git
@@ -26,6 +41,17 @@ codex plugin add quota-rings@quota-rings-personal
 Open “Quota Time Rings / 额度时间环” in the desktop host's plugin/sidebar entry. The server is bundled: installation does not require `npm install`. Local plugin support and the final entrypoint must be verified in the user's host; this repository is not an official directory listing or approval.
 
 Official sign-in reference: https://learn.chatgpt.com/docs/auth
+
+## Update / 更新
+
+For the recommended GitHub installation:
+
+```sh
+codex plugin marketplace upgrade quota-rings-personal
+codex plugin add quota-rings@quota-rings-personal
+```
+
+Then restart the desktop host and open a new chat/panel. A panel already open may still use the prior version. Check the version displayed at the top of the panel. For a local source checkout, pull changes in that directory before reinstalling instead. See the [Chinese guide](GETTING_STARTED.zh-CN.md) for troubleshooting and removal.
 
 ## What the rings mean
 

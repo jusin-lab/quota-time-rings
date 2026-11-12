@@ -3,6 +3,9 @@ import {dirname,join} from 'node:path';
 import {build} from 'esbuild';
 const manifest=JSON.parse(readFileSync('plugins/quota-rings/.codex-plugin/plugin.json','utf8'));
 const uiPath='plugins/quota-rings/ui.html';
+// Ship the same onboarding instructions with source and installed packages.
+writeFileSync('plugins/quota-rings/README.md',readFileSync('README.md','utf8'));
+writeFileSync('plugins/quota-rings/GETTING_STARTED.zh-CN.md',readFileSync('GETTING_STARTED.zh-CN.md','utf8').replaceAll('(plugins/quota-rings/.codex-plugin/plugin.json)','(.codex-plugin/plugin.json)'));
 writeFileSync(uiPath,readFileSync(uiPath,'utf8').replace(/(id="build-version"[^>]*>)[^<]*/,`$1v${manifest.version}`));
 const result=await build({entryPoints:['src/server.mjs'],outfile:'plugins/quota-rings/server.mjs',bundle:true,metafile:true,platform:'node',format:'esm',target:'node20',banner:{js:'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);'}});
 // Keep licenses for every dependency actually bundled, including transitive ones.
